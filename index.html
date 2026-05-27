@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>생기부 활동 기록기 Pro (Google 로그인 지원)</title>
+    <title>생기부 활동 기록기 Pro (통합 로그인 및 동기화)</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Font Awesome Icons -->
@@ -43,51 +43,92 @@
     <div id="loadingMask" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center hidden">
         <div class="bg-white px-6 py-5 rounded-2xl shadow-xl flex items-center gap-3">
             <i class="fa-solid fa-circle-notch animate-spin text-2xl text-blue-600"></i>
-            <span id="loadingText" class="text-sm font-semibold text-slate-700">구글 안전 로그인 연동 중...</span>
+            <span id="loadingText" class="text-sm font-semibold text-slate-700">안전 연결 수립 중...</span>
         </div>
     </div>
 
-    <!-- 1. 구글 간편 인증 화면 -->
+    <!-- 1. 통합 로그인 / 회원가입 화면 -->
     <div id="authContainer" class="flex-grow flex items-center justify-center p-4">
-        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md border border-slate-100">
+        <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-100">
             
+            <!-- 상태 배지 -->
             <div class="flex justify-end mb-2">
                 <span id="connectionBadge" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border">
                     <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span> 연결 준비 중
                 </span>
             </div>
 
-            <div class="text-center mb-8">
-                <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl mb-4">
-                    <i class="fa-solid fa-graduation-cap text-2xl animate-bounce"></i>
+            <div class="text-center mb-6">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl mb-3">
+                    <i class="fa-solid fa-cloud-arrow-up text-2xl"></i>
                 </div>
                 <h1 class="text-2xl font-bold text-slate-900">생기부 활동 기록기 Pro</h1>
-                <p class="text-slate-500 text-sm mt-1.5">구글 로그인으로 분실 걱정 없이 영구 보존하세요</p>
+                <p class="text-slate-500 text-xs mt-1">구글 및 일반 계정 연동으로 기록을 안전하게 보호합니다</p>
             </div>
 
-            <!-- 로그인 패널 -->
-            <div class="space-y-4">
-                <!-- 구글 로그인 대형 버튼 -->
-                <button id="googleSignInBtn" class="w-full flex items-center justify-center gap-3 bg-white hover:bg-slate-50 text-slate-700 font-semibold py-3 px-4 border border-slate-300 rounded-xl transition shadow-sm hover:shadow active:scale-[0.98]">
-                    <svg class="w-5 h-5" viewBox="0 0 24 24">
+            <!-- 로그인 폼 -->
+            <form id="loginForm" class="space-y-4">
+                <h2 class="text-lg font-semibold text-slate-800 border-b pb-2 flex justify-between items-center">
+                    <span>로그인</span>
+                    <button type="button" onclick="window.startAsGuest()" class="text-xs text-slate-500 hover:text-blue-600 hover:underline font-normal">비회원 체험하기</button>
+                </h2>
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">아이디</label>
+                    <input type="text" id="loginId" required class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm" placeholder="아이디를 입력하세요">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">비밀번호</label>
+                    <input type="password" id="loginPw" required class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm" placeholder="••••••••">
+                </div>
+
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg transition shadow-md flex items-center justify-center gap-2 text-sm mt-2">
+                    <i class="fa-solid fa-right-to-bracket"></i> 로그인
+                </button>
+
+                <div class="relative flex py-2 items-center">
+                    <div class="flex-grow border-t border-slate-200"></div>
+                    <span class="flex-shrink mx-4 text-slate-400 text-xs">또는 간편 로그인</span>
+                    <div class="flex-grow border-t border-slate-200"></div>
+                </div>
+
+                <!-- 구글 간편 로그인 추가 -->
+                <button type="button" id="googleSignInBtn" class="w-full flex items-center justify-center gap-3 bg-white hover:bg-slate-50 text-slate-700 font-semibold py-2.5 px-4 border border-slate-300 rounded-xl transition shadow-sm hover:shadow active:scale-[0.98] text-sm">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24">
                         <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                         <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
                         <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22c-.1-.3-.19-.63-.19-.63z"/>
                         <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
                     </svg>
-                    Google 계정으로 로그인하기
+                    Google 계정으로 로그인
                 </button>
 
-                <div class="relative flex py-2 items-center">
-                    <div class="flex-grow border-t border-slate-200"></div>
-                    <span class="flex-shrink mx-4 text-slate-400 text-xs">또는</span>
-                    <div class="flex-grow border-t border-slate-200"></div>
+                <p class="text-center text-xs text-slate-500 mt-4">
+                    일반 계정이 없으신가요? <button type="button" onclick="window.toggleAuthMode(false)" class="text-blue-600 hover:underline font-medium">회원가입하기</button>
+                </p>
+            </form>
+
+            <!-- 회원가입 폼 (기본 숨김) -->
+            <form id="registerForm" class="space-y-4 hidden">
+                <h2 class="text-lg font-semibold text-slate-800 border-b pb-2">새 일반 계정 만들기</h2>
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">학생 이름 <span class="text-rose-500">*</span></label>
+                    <input type="text" id="regName" required class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm" placeholder="예: 홍길동">
                 </div>
-
-                <button onclick="window.startAsGuest()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-3 px-4 rounded-xl transition text-sm flex items-center justify-center gap-2">
-                    <i class="fa-regular fa-user"></i> 가입 없이 게스트 모드로 사용해보기
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">아이디 설정 <span class="text-rose-500">*</span></label>
+                    <input type="text" id="regId" required class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm" placeholder="로그인에 사용할 아이디">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">비밀번호 <span class="text-rose-500">*</span></label>
+                    <input type="password" id="regPw" required class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm" placeholder="최소 6글자 이상">
+                </div>
+                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 rounded-lg transition shadow-md flex items-center justify-center gap-2 text-sm mt-2">
+                    <i class="fa-solid fa-user-plus"></i> 일반 회원가입 완료
                 </button>
-            </div>
+                <p class="text-center text-xs text-slate-500 mt-4">
+                    이미 가입하셨나요? <button type="button" onclick="window.toggleAuthMode(true)" class="text-blue-600 hover:underline font-medium">로그인하기</button>
+                </p>
+            </form>
         </div>
     </div>
 
@@ -103,7 +144,7 @@
                         <h1 class="text-xl font-bold text-slate-900 tracking-tight">생기부 활동 기록기 Pro</h1>
                         <p class="text-xs text-emerald-600 font-medium flex items-center gap-1">
                             <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                            구글 클라우드 동기화 시스템 작동 중
+                            <span id="syncModeText">실시간 동기화 가동 중</span>
                         </p>
                     </div>
                 </div>
@@ -122,16 +163,16 @@
             </div>
         </header>
 
-        <!-- 메인 본문 콘텐츠 -->
+        <!-- 메인 콘텐츠 영역 -->
         <main class="max-w-6xl mx-auto px-4 py-6 flex-grow w-full grid grid-cols-1 lg:grid-cols-4 gap-6">
             
-            <!-- 왼쪽: 제어 및 분류 필터 -->
+            <!-- 왼쪽: 필터 및 백업 패널 -->
             <aside class="space-y-4 lg:col-span-1">
                 <button onclick="window.openAddModal()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl shadow-lg shadow-blue-100 transition flex items-center justify-center gap-2">
                     <i class="fa-solid fa-plus"></i> 새 활동 기록하기
                 </button>
 
-                <!-- 필터 폼 -->
+                <!-- 필터 카드 -->
                 <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-5">
                     <div>
                         <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">학년 필터</h3>
@@ -167,10 +208,10 @@
                     </div>
                 </div>
 
-                <!-- 수동 백업 컨트롤 -->
+                <!-- 수동 백업 툴 -->
                 <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
                     <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">안전 로컬 백업</h3>
-                    <p class="text-xs text-slate-500 leading-relaxed">구글 클라우드 백업 이외에도, 별도의 JSON 백업 파일을 저장해 둘 수 있습니다.</p>
+                    <p class="text-xs text-slate-500 leading-relaxed">클라우드 동기화와 별개로, 작성된 전체 원고를 파일(JSON)로 내보내어 소장할 수 있습니다.</p>
                     <div class="grid grid-cols-2 gap-2 pt-1">
                         <button onclick="window.exportData()" class="px-3 py-2 text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition flex items-center justify-center gap-1">
                             <i class="fa-solid fa-download"></i> 내보내기
@@ -183,7 +224,7 @@
                 </div>
             </aside>
 
-            <!-- 오른쪽: 작성한 활동 피드 -->
+            <!-- 오른쪽: 기록 리스트 피드 -->
             <section class="lg:col-span-3 space-y-4">
                 <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-3 justify-between items-center">
                     <div class="relative w-full md:max-w-xs">
@@ -199,21 +240,22 @@
                 </div>
 
                 <div id="activityContainer" class="space-y-4 min-h-[400px]">
-                    <!-- 동적 카드 바인딩 -->
+                    <!-- 동적 콘텐츠 바인딩 -->
                 </div>
             </section>
         </main>
     </div>
 
 
-    <!-- 3. 활동 생성 및 편집 모달창 -->
+    <!-- 3. 활동 추가/수정 모달창 -->
     <div id="activityModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl border border-slate-100 max-h-[90vh] flex flex-col relative">
+            <!-- 모달 헤더 -->
             <div class="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50 rounded-t-2xl">
                 <div>
                     <h3 id="modalTitle" class="text-lg font-bold text-slate-900">새 활동 기록</h3>
                     <span id="autoSaveIndicator" class="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1">
-                        <i class="fa-solid fa-cloud-arrow-up"></i> 작성 내용이 장치에 오프라인 임시 저장됩니다
+                        <i class="fa-solid fa-cloud-arrow-up"></i> 작성 시작 시 기기에 임시 안전 세션이 활성화됩니다
                     </span>
                 </div>
                 <button type="button" onclick="window.closeModal()" class="text-slate-400 hover:text-slate-600 transition text-xl">
@@ -221,6 +263,7 @@
                 </button>
             </div>
 
+            <!-- 모달 폼 바디 -->
             <form id="activityForm" onsubmit="window.saveActivity(event)" class="p-6 overflow-y-auto space-y-4 flex-grow">
                 <input type="hidden" id="editId">
                 
@@ -263,7 +306,7 @@
                         <label class="block text-xs font-semibold text-slate-600 mb-1">활동 일자 <span class="text-rose-500">*</span></label>
                         <input type="date" id="formDate" required class="w-full px-3.5 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
                     </div>
-                    <!-- 교과명 -->
+                    <!-- 관련 과목 -->
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">관련 과목 / 분야 <span class="text-slate-400">(선택)</span></label>
                         <input type="text" id="formSubject" placeholder="예: 수학 I, 물리" class="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
@@ -273,32 +316,32 @@
                 <!-- 활동명 -->
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">활동명 <span class="text-rose-500">*</span></label>
-                    <input type="text" id="formTitle" required placeholder="예: 인공지능 탐구 소감 보고서 작성" class="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
+                    <input type="text" id="formTitle" required placeholder="예: 인공지능 윤리 탐구 보고서 작성" class="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
                 </div>
 
-                <!-- 활동 구체적 내용 -->
+                <!-- 상세 내용 -->
                 <div>
                     <div class="flex justify-between items-center mb-1">
                         <label class="block text-xs font-semibold text-slate-600">구체적인 활동 내용 <span class="text-rose-500">*</span></label>
                         <span id="descLen" class="text-[10px] text-slate-400">0자 / 1000자</span>
                     </div>
-                    <textarea id="formDescription" required rows="4" placeholder="어떤 실험을 했고 어떤 사실을 발견했는지 인과 관계 중심으로 써보세요." class="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition resize-none"></textarea>
+                    <textarea id="formDescription" required rows="4" placeholder="어떤 주제를 탐구하여 결과물을 도출했는지 인과관계 중심으로 상세히 써보세요." class="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition resize-none"></textarea>
                 </div>
 
-                <!-- 소감 및 배우고 느낀 점 -->
+                <!-- 느낀 점 / 소감문 -->
                 <div>
                     <div class="flex justify-between items-center mb-1">
                         <label class="block text-xs font-semibold text-slate-600">배우고 느낀 점 <span class="text-rose-500">*</span></label>
                         <span id="reflLen" class="text-[10px] text-slate-400">0자 / 1000자</span>
                     </div>
-                    <textarea id="formReflection" required rows="5" placeholder="이 활동으로 인해 나의 가치관이 어떻게 바뀌었는지 기술해보세요." class="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition resize-none"></textarea>
+                    <textarea id="formReflection" required rows="5" placeholder="활동을 수행하며 새롭게 지식을 확장하게 된 계기나 성장한 점을 중심으로 서술해 주세요." class="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition resize-none"></textarea>
                 </div>
 
-                <!-- 하단 액션 버튼 -->
+                <!-- 하단 버튼 -->
                 <div class="flex justify-end gap-3 pt-4 border-t border-slate-100">
                     <button type="button" onclick="window.closeModal()" class="px-5 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 text-sm font-medium transition">취소</button>
                     <button type="submit" class="px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition shadow flex items-center gap-1.5">
-                        <i class="fa-solid fa-cloud-arrow-up"></i> 안전하게 클라우드 저장
+                        <i class="fa-solid fa-cloud-arrow-up"></i> 안전 저장하기
                     </button>
                 </div>
             </form>
@@ -308,13 +351,13 @@
     <!-- 푸터 -->
     <footer class="bg-slate-900 text-slate-500 text-center py-6 text-xs border-t border-slate-800 mt-auto">
         <p>© 2026 생기부 활동 기록기 Pro. All rights reserved.</p>
-        <p class="mt-1">구글 클라우드 DB 인프라를 활용하여 언제 어디서나 기록물을 안전하게 계정에 복구합니다.</p>
+        <p class="mt-1">구글 클라우드 및 하이브리드 로컬 백업 시스템이 안정적으로 기록을 유지해 줍니다.</p>
     </footer>
 
-    <!-- Firebase SDK 및 핵심 구글 로그인 제어 모듈 -->
+    <!-- Firebase SDK & 하이브리드 통합 로그인 제어 모듈 -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // 시스템 전역 엔진 세팅
@@ -325,13 +368,16 @@
 
         function updateStateIndicator(mode) {
             const badge = document.getElementById('connectionBadge');
+            const syncText = document.getElementById('syncModeText');
             if(!badge) return;
             if(mode === 'cloud') {
                 badge.className = "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200";
-                badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> 구글 통합 연동 활성화`;
+                badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> 하이브리드 클라우드 연동 완료`;
+                if(syncText) syncText.textContent = "실시간 클라우드 DB 연동 완료";
             } else {
                 badge.className = "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200";
-                badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> 로컬 안전 전용 모드`;
+                badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> 오프라인 로컬 저장 전용`;
+                if(syncText) syncText.textContent = "개인 브라우저 로컬 안전 모드";
             }
         }
 
@@ -348,11 +394,11 @@
                 updateStateIndicator('local');
             }
         } catch (e) {
-            console.error("Firebase init failed: ", e);
+            console.error("Firebase init fallback activation: ", e);
             updateStateIndicator('local');
         }
 
-        // 전역 인메모리 관리 상태
+        // 전역 상태 변수들
         let currentUser = null;
         let activities = [];
         let activeFilters = {
@@ -362,7 +408,7 @@
         let autoSaveTimer = null;
         let firestoreUnsubscribe = null;
 
-        // 토스트 팝업 
+        // 토스트 알림 팝업
         function showToast(message, type = 'info') {
             const toast = document.getElementById('toast');
             const icon = document.getElementById('toastIcon');
@@ -386,7 +432,6 @@
             }, 2500);
         }
 
-        // 모달/인디케이터 로딩 마스크
         function showLoading(text) {
             const mask = document.getElementById('loadingMask');
             if(mask) {
@@ -400,7 +445,12 @@
             if(mask) mask.classList.add('hidden');
         }
 
-        // 1. 보안 규격 검증 및 상태 추적 수립 (Rule 3)
+        // 가짜 이메일 가공용 헬퍼
+        function getIdEmail(id) {
+            return `${id.trim().toLowerCase()}@sengibu-pro.com`;
+        }
+
+        // 1. 초기화 수립 (Rule 3)
         const initAuthSystem = async () => {
             showLoading("보안 연결 확보 중...");
             
@@ -409,7 +459,6 @@
                     if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                         await signInWithCustomToken(auth, __initial_auth_token);
                     } else {
-                        // 기본 익명 수립으로 에러 회피
                         await signInAnonymously(auth);
                     }
                 } catch(e) {
@@ -417,8 +466,8 @@
                 }
             }
 
-            // 로컬 영구 자동 세션 체크
-            const cachedSession = localStorage.getItem('sengibu_pro_google_session');
+            // 기기 내 캐시 세션 탐색
+            const cachedSession = localStorage.getItem('sengibu_pro_unified_session');
             if (cachedSession) {
                 currentUser = JSON.parse(cachedSession);
                 await syncUserDataFeed(currentUser.id, currentUser.name, currentUser.photoURL);
@@ -437,19 +486,29 @@
             bindInteractions();
         });
 
-        // Auth 상태 변동 모니터링 체인
+        // 클라우드 상태 변동 모니터링 체인 (Rule 3)
         if (useCloud) {
             onAuthStateChanged(auth, async (user) => {
                 if (user && !user.isAnonymous) {
-                    // 로그인 된 실 구글 유저 수신
+                    // 구글 로그인 성공 유저 혹은 가입 유저 바인딩
                     currentUser = {
                         id: user.uid,
-                        name: user.displayName || "구글학생",
+                        name: user.displayName || user.email?.split('@')[0] || "사용자",
                         photoURL: user.photoURL || ""
                     };
-                    localStorage.setItem('sengibu_pro_google_session', JSON.stringify(currentUser));
                     
-                    showLoading("구글 계정 데이터를 가져오는 중...");
+                    // 가입 일반 유저 이름 확보 시도
+                    if (!user.displayName && !user.photoURL) {
+                        const profileRef = doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'info');
+                        const profileSnap = await getDoc(profileRef);
+                        if (profileSnap.exists()) {
+                            currentUser.name = profileSnap.data().name || "학생";
+                        }
+                    }
+
+                    localStorage.setItem('sengibu_pro_unified_session', JSON.stringify(currentUser));
+                    
+                    showLoading("데이터 동기화 완료 중...");
                     await syncUserDataFeed(currentUser.id, currentUser.name, currentUser.photoURL);
                     showDashboard();
                     hideLoading();
@@ -457,22 +516,24 @@
             });
         }
 
-        // 구글 연동 데이터 수집/이벤트 바인딩 바인더 (Rule 1, 2 준수)
+        // 구글/일반 계정 통합 데이터 바인딩 (Rule 1, 2 준수)
         async function syncUserDataFeed(uid, displayName, photoURL) {
             document.getElementById('userName').textContent = displayName;
             const photoImg = document.getElementById('userPhoto');
             if (photoURL && photoImg) {
                 photoImg.src = photoURL;
                 photoImg.classList.remove('hidden');
+            } else if (photoImg) {
+                photoImg.classList.add('hidden');
             }
 
             if (useCloud && !uid.startsWith('local_')) {
                 if (firestoreUnsubscribe) firestoreUnsubscribe();
 
-                // Rule 1: 지정 격리 경로 준수
+                // Rule 1: 안전 격리 경로 준수
                 const colRef = collection(db, 'artifacts', appId, 'users', uid, 'activities');
                 
-                // Rule 2: 온스냅샷 단순 수집
+                // Rule 2: 단순 리스너 수집
                 firestoreUnsubscribe = onSnapshot(colRef, (snapshot) => {
                     activities = [];
                     snapshot.forEach(docSnap => {
@@ -489,15 +550,15 @@
         }
 
         function loadLocalDataBackup(uid) {
-            const localDB = JSON.parse(localStorage.getItem('s_local_activities_v2') || '{}');
+            const localDB = JSON.parse(localStorage.getItem('s_local_activities_v3') || '{}');
             activities = localDB[uid] || [];
             renderActivities();
         }
 
         function saveLocalDataBackup(uid) {
-            const localDB = JSON.parse(localStorage.getItem('s_local_activities_v2') || '{}');
+            const localDB = JSON.parse(localStorage.getItem('s_local_activities_v3') || '{}');
             localDB[uid] = activities;
-            localStorage.setItem('s_local_activities_v2', JSON.stringify(localDB));
+            localStorage.setItem('s_local_activities_v3', JSON.stringify(localDB));
         }
 
         function showAuth() {
@@ -513,37 +574,124 @@
         }
 
         // ==========================================
-        // 🌟 ES Module 전역 바인딩 리스트 (버튼 크래시 방지)
+        // 🌟 통합 로그인 및 가입 상호작용 설계
         // ==========================================
         
         function bindInteractions() {
-            // 구글 간편 원클릭 로그인
+            // A. 회원가입 가기 및 로그인 전환 제어
+            window.toggleAuthMode = function(isLogin) {
+                const loginForm = document.getElementById('loginForm');
+                const registerForm = document.getElementById('registerForm');
+                if (isLogin) {
+                    loginForm.classList.remove('hidden');
+                    registerForm.classList.add('hidden');
+                } else {
+                    loginForm.classList.add('hidden');
+                    registerForm.classList.remove('hidden');
+                }
+            };
+
+            // B. 구글 로그인 버튼 이벤트 연결
             document.getElementById('googleSignInBtn')?.addEventListener('click', async () => {
                 if (!useCloud) {
-                    showToast("현재 환경에서는 클라우드가 지원되지 않습니다. 로컬 버퍼 가동합니다.", "error");
+                    showToast("구글 클라우드를 사용할 수 없습니다. 로컬 체험 버퍼를 가동합니다.", "error");
                     window.startAsGuest();
                     return;
                 }
 
-                showLoading("구글 창을 불러오는 중...");
+                showLoading("구글 간편 인증 화면 호출 중...");
                 try {
                     const provider = new GoogleAuthProvider();
-                    // 구글 팝업 인증
+                    // 구글 팝업을 통한 간편 계정 발급 연동
                     await signInWithPopup(auth, provider);
-                    showToast("구글 클라우드 로그인에 성공했습니다!", "success");
+                    showToast("성공적으로 구글 클라우드 계정에 로그인되었습니다!", "success");
                 } catch (err) {
-                    console.error("Google Auth Fail: ", err);
-                    showToast("구글 연동 취소 또는 장애가 있습니다.", "error");
+                    console.error("Google Authentication Fail: ", err);
+                    showToast("구글 계정 연동을 취소하셨거나 문제가 발생했습니다.", "error");
                 } finally {
                     hideLoading();
                 }
             });
 
-            // 로그아웃 제어
+            // C. 일반 회원가입 처리 제출
+            document.getElementById('registerForm')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const name = document.getElementById('regName').value.trim();
+                const id = document.getElementById('regId').value.trim().toLowerCase();
+                const pw = document.getElementById('regPw').value.trim();
+
+                if (!name || !id || !pw) {
+                    showToast('필수 데이터를 전부 적어주세요.', 'error');
+                    return;
+                }
+
+                if (pw.length < 6) {
+                    showToast('비밀번호는 안전을 위해 최소 6글자 이상이어야 합니다.', 'error');
+                    return;
+                }
+
+                showLoading("신규 계정을 생성하는 중...");
+
+                if (useCloud) {
+                    try {
+                        const email = getIdEmail(id);
+                        // 클라우드 계정 생성
+                        const userCredential = await createUserWithEmailAndPassword(auth, email, pw);
+                        const user = userCredential.user;
+
+                        // 프로필 설정 (Rule 1)
+                        const profileRef = doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'info');
+                        await setDoc(profileRef, { name, createdAt: new Date().toISOString() });
+
+                        showToast('계정이 무사히 발급되었습니다! 새로 생성한 계정으로 로그인해 보세요.', 'success');
+                        document.getElementById('registerForm').reset();
+                        window.toggleAuthMode(true);
+                    } catch (error) {
+                        if (error.code === 'auth/email-already-in-use') {
+                            showToast('이미 존재하는 아이디입니다.', 'error');
+                        } else {
+                            localRegisterFallback(id, name, pw);
+                        }
+                    } finally {
+                        hideLoading();
+                    }
+                } else {
+                    localRegisterFallback(id, name, pw);
+                    hideLoading();
+                }
+            });
+
+            // D. 일반 로그인 처리 제출
+            document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const id = document.getElementById('loginId').value.trim().toLowerCase();
+                const pw = document.getElementById('loginPw').value.trim();
+
+                showLoading("로그인 자격 정보 확인 중...");
+
+                if (useCloud) {
+                    try {
+                        const email = getIdEmail(id);
+                        // 클라우드 로그인 매핑
+                        await signInWithEmailAndPassword(auth, email, pw);
+                        showToast('동기화 로그인에 성공했습니다!', 'success');
+                        document.getElementById('loginForm').reset();
+                    } catch (error) {
+                        localLoginFallback(id, pw);
+                    } finally {
+                        hideLoading();
+                    }
+                } else {
+                    localLoginFallback(id, pw);
+                    hideLoading();
+                }
+            });
+
+            // E. 로그아웃 제어
             document.getElementById('logoutBtn')?.addEventListener('click', async () => {
-                showLoading("안전하게 구글 세션을 종료하는 중...");
+                showLoading("로그아웃 연동 중...");
                 try {
-                    localStorage.removeItem('sengibu_pro_google_session');
+                    localStorage.removeItem('sengibu_pro_unified_session');
                     if (useCloud) {
                         if (firestoreUnsubscribe) firestoreUnsubscribe();
                         await signOut(auth);
@@ -561,16 +709,46 @@
             });
         }
 
-        // 비회원 게스트 모드 진입
+        // 클라우드 환경 순단 시 오프라인 로컬 처리 전향 설계들
+        function localRegisterFallback(id, name, pw) {
+            const localUsers = JSON.parse(localStorage.getItem('s_local_users_v3') || '{}');
+            if (localUsers[id]) {
+                showToast('이미 사용 중인 로컬 아이디입니다.', 'error');
+                return;
+            }
+            localUsers[id] = { name, pw };
+            localStorage.setItem('s_local_users_v3', JSON.stringify(localUsers));
+            showToast('로컬 모드로 가입되었습니다! 로그인해 보세요.', 'success');
+            document.getElementById('registerForm').reset();
+            window.toggleAuthMode(true);
+        }
+
+        function localLoginFallback(id, pw) {
+            const localUsers = JSON.parse(localStorage.getItem('s_local_users_v3') || '{}');
+            const user = localUsers[id];
+
+            if (user && user.pw === pw) {
+                currentUser = { id: 'local_' + id, name: user.name, photoURL: '' };
+                localStorage.setItem('sengibu_pro_unified_session', JSON.stringify(currentUser));
+                syncUserDataFeed(currentUser.id, currentUser.name, currentUser.photoURL);
+                showDashboard();
+                showToast(`${user.name}님, 로컬 모드로 정상 로그인되었습니다.`, 'success');
+                document.getElementById('loginForm').reset();
+            } else {
+                showToast('아이디 혹은 비밀번호가 불일치하거나 클라우드 통신 상태를 확인하세요.', 'error');
+            }
+        }
+
+        // 비회원 간편 게스트 진입
         window.startAsGuest = function() {
-            currentUser = { id: 'local_guest_pro', name: '체험용 게스트', photoURL: '' };
-            localStorage.setItem('sengibu_pro_google_session', JSON.stringify(currentUser));
+            currentUser = { id: 'local_guest_v3', name: '게스트', photoURL: '' };
+            localStorage.setItem('sengibu_pro_unified_session', JSON.stringify(currentUser));
             syncUserDataFeed(currentUser.id, currentUser.name, currentUser.photoURL);
             showDashboard();
-            showToast('게스트 전용 데이터베이스로 연동되었습니다.', 'info');
+            showToast('체험용 게스트 계정으로 진입했습니다.', 'info');
         };
 
-        // 학년/학기 버튼 필터
+        // 학년/학기 필터 스위치
         window.setFilter = function(type, value) {
             activeFilters[type] = value;
             const buttons = document.querySelectorAll(`.filter-btn-${type}`);
@@ -591,7 +769,7 @@
             window.renderActivities();
         };
 
-        // 데이터 그리기 엔진 (Rule 2 준수: 인메모리 필터 정렬)
+        // 동적 렌더링 (Rule 2: 클라이언트 내부 필터 정렬)
         window.renderActivities = function() {
             const container = document.getElementById('activityContainer');
             if (!container) return;
@@ -612,7 +790,7 @@
                 return matchGrade && matchSemester && matchCategory && matchSearch;
             }).sort((a, b) => new Date(b.date) - new Date(a.date));
 
-            document.getElementById('activityCount').textContent = `분류 및 검색 결과: ${filtered.length}개`;
+            document.getElementById('activityCount').textContent = `동기화 결과: ${filtered.length}개`;
 
             if (filtered.length === 0) {
                 container.innerHTML = `
@@ -620,8 +798,8 @@
                         <div class="text-slate-300 text-5xl mb-4">
                             <i class="fa-regular fa-folder-open"></i>
                         </div>
-                        <h4 class="text-base font-semibold text-slate-700">등록된 활동 결과가 없습니다</h4>
-                        <p class="text-xs text-slate-400 mt-1">학년/학기/과목 등의 필터 기준을 조정해 보세요.</p>
+                        <h4 class="text-base font-semibold text-slate-700">기록된 원고가 존재하지 않습니다</h4>
+                        <p class="text-xs text-slate-400 mt-1">필터를 조정하거나 오른쪽 상단 '기록하기' 버튼을 누르세요.</p>
                     </div>
                 `;
                 return;
@@ -691,17 +869,7 @@
             return styles[cat] || styles['기타'];
         }
 
-        function escapeHtml(str) {
-            if (!str) return '';
-            return str
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;")
-                .replace(/'/g, "&#039;");
-        }
-
-        // 모달창 오픈
+        // 모달창 닫기/열기 제어
         window.openAddModal = function() {
             document.getElementById('modalTitle').textContent = '새 생기부 활동 기록 추가';
             document.getElementById('activityForm').reset();
@@ -728,7 +896,7 @@
             document.getElementById('autoSaveIndicator').className = "text-[11px] text-slate-400 mt-0.5 flex items-center gap-1";
         };
 
-        // 데이터 전송 제출 (클라우드 / 로컬 하이브리드 분기)
+        // 데이터 연동 제출 (클라우드 / 로컬 분기)
         window.saveActivity = async function(e) {
             e.preventDefault();
             if (!currentUser) return;
@@ -744,7 +912,7 @@
             const reflection = document.getElementById('formReflection').value.trim();
 
             if (!grade || !semester || !category || !date || !title || !description || !reflection) {
-                showToast('필수 입력 요소를 다 채워주세요.', 'error');
+                showToast('필수 항목을 모두 작성해 주세요.', 'error');
                 return;
             }
 
@@ -754,11 +922,11 @@
                 updatedAt: new Date().toISOString()
             };
 
-            showLoading("클라우드 영구 저장 중...");
+            showLoading("원고 안전하게 저장하는 중...");
 
             try {
                 if (useCloud && !currentUser.id.startsWith('local_')) {
-                    // 구글 클라우드 계정에 직속 저장 (Rule 1)
+                    // 구글 및 이메일 계정 전용 클라우드 동기화 (Rule 1)
                     const docRef = doc(db, 'artifacts', appId, 'users', currentUser.id, 'activities', docId);
                     await setDoc(docRef, payload);
                 } else {
@@ -774,12 +942,12 @@
                 }
 
                 // 기기 임시 임프린트 드래프트 소거
-                localStorage.removeItem(`s_google_draft_${currentUser.id}`);
-                showToast('성공적으로 저장되었습니다.', 'success');
+                localStorage.removeItem(`s_unified_draft_${currentUser.id}`);
+                showToast('활동 기록물이 안전하게 보존되었습니다.', 'success');
                 window.closeModal();
             } catch (err) {
                 console.error("Save error: ", err);
-                showToast('저장 중 장애가 일어났습니다.', 'error');
+                showToast('원고를 연동하는 도중 오류가 발생했습니다.', 'error');
             } finally {
                 hideLoading();
             }
@@ -789,7 +957,7 @@
             const act = activities.find(a => a.id === id);
             if (!act) return;
 
-            document.getElementById('modalTitle').textContent = '기록 원고 수정 (클라우드 업데이트)';
+            document.getElementById('modalTitle').textContent = '기록 수정 (클라우드 업데이트)';
             document.getElementById('editId').value = act.id;
             document.getElementById('formGrade').value = act.grade;
             document.getElementById('formSemester').value = act.semester;
@@ -808,9 +976,9 @@
 
         window.deleteActivity = async function(id) {
             if (!currentUser) return;
-            const confirmDel = confirm('이 생기부 기록 원고를 삭제하시겠습니까?\n삭제된 문서는 돌이킬 수 없습니다.');
+            const confirmDel = confirm('해당 생기부 활동 기록을 완전히 영구 삭제하시겠습니까?');
             if (confirmDel) {
-                showLoading("삭제 요청 연동 중...");
+                showLoading("원고 파기 요청 중...");
                 try {
                     if (useCloud && !currentUser.id.startsWith('local_')) {
                         const docRef = doc(db, 'artifacts', appId, 'users', currentUser.id, 'activities', id);
@@ -820,9 +988,9 @@
                         saveLocalDataBackup(currentUser.id);
                         window.renderActivities();
                     }
-                    showToast('성공적으로 삭제되었습니다.', 'info');
+                    showToast('해당 활동 원고가 안전하게 삭제되었습니다.', 'info');
                 } catch (err) {
-                    showToast('삭제 프로세스 도중 에러가 일어났습니다.', 'error');
+                    showToast('삭제 처리 중 오류가 발생했습니다.', 'error');
                 } finally {
                     hideLoading();
                 }
@@ -838,6 +1006,7 @@
             target.textContent = `${currentLen}자 / 1000자`;
         }
 
+        // 자동 안전 임시저장(Auto-save) 장치 가동
         function setupAutoSaveTriggers() {
             const formElements = ['formGrade', 'formSemester', 'formCategory', 'formDate', 'formSubject', 'formTitle', 'formDescription', 'formReflection'];
             formElements.forEach(elemId => {
@@ -904,15 +1073,15 @@
                 return;
             }
 
-            localStorage.setItem(`s_google_draft_${currentUser.id}`, JSON.stringify(draft));
+            localStorage.setItem(`s_unified_draft_${currentUser.id}`, JSON.stringify(draft));
             const indicator = document.getElementById('autoSaveIndicator');
             indicator.className = "text-[11px] text-emerald-600 mt-0.5 flex items-center gap-1 font-medium";
-            indicator.innerHTML = `<i class="fa-solid fa-circle-check"></i> 오프라인 실시간 임시보호 완료`;
+            indicator.innerHTML = `<i class="fa-solid fa-circle-check"></i> 작성 중인 내용 실시간 임시보호 완료`;
         }
 
         function checkDraftData() {
             if (!currentUser) return;
-            const savedDraftStr = localStorage.getItem(`s_google_draft_${currentUser.id}`);
+            const savedDraftStr = localStorage.getItem(`s_unified_draft_${currentUser.id}`);
             if (savedDraftStr) {
                 const draft = JSON.parse(savedDraftStr);
                 if (draft.title || draft.description || draft.reflection) {
@@ -930,16 +1099,16 @@
                             
                             updateCharCount('formDescription', 'descLen');
                             updateCharCount('formReflection', 'reflLen');
-                            showToast('임시 저장 원고를 완벽하게 불러왔습니다.', 'success');
+                            showToast('임시 저장 원고를 복구했습니다.', 'success');
                         } else {
-                            localStorage.removeItem(`s_google_draft_${currentUser.id}`);
+                            localStorage.removeItem(`s_unified_draft_${currentUser.id}`);
                         }
                     }, 100);
                 }
             }
         }
 
-        // JSON 추출 시스템
+        // 수동 백업 처리들
         window.exportData = function() {
             if (activities.length === 0) {
                 showToast('내보낼 기록 데이터가 존재하지 않습니다.', 'error');
@@ -953,11 +1122,11 @@
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(payload, null, 2));
             const downloadAnchor = document.createElement('a');
             downloadAnchor.setAttribute("href", dataStr);
-            downloadAnchor.setAttribute("download", `생기부Pro_Google_백업_${new Date().toISOString().slice(0,10)}.json`);
+            downloadAnchor.setAttribute("download", `생기부Pro_백업_${new Date().toISOString().slice(0,10)}.json`);
             document.body.appendChild(downloadAnchor);
             downloadAnchor.click();
             downloadAnchor.remove();
-            showToast('JSON 백업 파일이 생성되어 다운로드되었습니다.', 'success');
+            showToast('JSON 백업 파일이 생성 및 다운로드되었습니다.', 'success');
         };
 
         window.importData = function(event) {
@@ -969,7 +1138,7 @@
                 try {
                     const parsed = JSON.parse(e.target.result);
                     if (parsed && Array.isArray(parsed.data)) {
-                        const confirmImport = confirm(`가져올 수 있는 기록 ${parsed.data.length}개를 찾았습니다.\n\n현재 저장 공간에 덮어써 병합하시겠습니까?`);
+                        const confirmImport = confirm(`백업 파일 안의 기록 ${parsed.data.length}개를 가져옵니다.\n\n현재 내 저장 공간에 추가하시겠습니까?`);
                         
                         if (confirmImport) {
                             showLoading("데이터 병합 이식 중...");
@@ -999,10 +1168,10 @@
                                 saveLocalDataBackup(currentUser.id);
                                 window.renderActivities();
                             }
-                            showToast('모든 백업 데이터가 완벽하게 복구되었습니다!', 'success');
+                            showToast('백업 데이터를 정상적으로 불러와 동기화했습니다!', 'success');
                         }
                     } else {
-                        showToast('비정상적이거나 손상된 파일 형식입니다.', 'error');
+                        showToast('유효하지 않은 구조의 백업본입니다.', 'error');
                     }
                 } catch (err) {
                     showToast('백업 파일 처리에 실패했습니다.', 'error');
