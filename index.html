@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>생기부 활동 기록기 Pro (동기화 보완판)</title>
+    <title>생기부 활동 기록기 Pro (클라우드 동기화)</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Font Awesome Icons -->
@@ -39,52 +39,42 @@
         <span id="toastMessage">알림 메시지</span>
     </div>
 
+    <!-- 로딩 마스크 (인증/동기화 시 로딩 인디케이터) -->
+    <div id="loadingMask" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center hidden">
+        <div class="bg-white px-6 py-5 rounded-2xl shadow-xl flex items-center gap-3">
+            <i class="fa-solid fa-circle-notch animate-spin text-2xl text-blue-600"></i>
+            <span id="loadingText" class="text-sm font-semibold text-slate-700">클라우드 동기화 중...</span>
+        </div>
+    </div>
+
     <!-- 1. 로그인 / 회원가입 화면 -->
     <div id="authContainer" class="flex-grow flex items-center justify-center p-4">
         <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-100">
             <div class="text-center mb-6">
                 <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl mb-4">
-                    <i class="fa-solid fa-book-open text-2xl"></i>
+                    <i class="fa-solid fa-cloud-arrow-up text-2xl"></i>
                 </div>
-                <h1 class="text-2xl font-bold text-slate-900">생기부 활동 기록기</h1>
-                <p class="text-slate-500 text-sm mt-1">2중 안전 저장 장치로 기록을 보호합니다</p>
-            </div>
-
-            <!-- 비상 데이터 복구 패널 (유실 방지용) -->
-            <div id="emergencyRestorePanel" class="hidden mb-6 p-3.5 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-800">
-                <p class="font-bold flex items-center gap-1.5 mb-1 text-amber-900">
-                    <i class="fa-solid fa-triangle-exclamation animate-bounce"></i> 유실 가능성 있는 데이터 발견!
-                </p>
-                <p class="mb-2">이전 접속 중 저장되었던 기록 원고가 브라우저 내부에 남아있습니다. 바로 복구하시겠습니까?</p>
-                <div class="flex gap-2">
-                    <button onclick="restoreFromOrphanedStorage()" class="px-2.5 py-1.5 bg-amber-600 text-white font-semibold rounded hover:bg-amber-700 transition">기록 안전 복구하기</button>
-                    <button onclick="dismissEmergencyPanel()" class="px-2.5 py-1.5 bg-white text-slate-500 rounded border hover:bg-slate-100 transition">닫기</button>
-                </div>
+                <h1 class="text-2xl font-bold text-slate-900">생기부 활동 기록기 Pro</h1>
+                <p class="text-slate-500 text-sm mt-1">클라우드에 연동되어 기록이 영구 보존됩니다</p>
             </div>
 
             <!-- 로그인 폼 -->
             <form id="loginForm" class="space-y-4">
                 <h2 class="text-lg font-semibold text-slate-800 border-b pb-2 flex justify-between items-center">
                     <span>로그인</span>
-                    <button type="button" onclick="startAsGuest()" class="text-xs text-blue-600 hover:underline font-normal">비회원으로 바로 시작</button>
+                    <button type="button" onclick="startAsGuest()" class="text-xs text-blue-600 hover:underline font-normal">체험용 게스트 시작</button>
                 </h2>
                 <div>
                     <label class="block text-xs font-medium text-slate-600 mb-1">아이디</label>
-                    <input type="text" id="loginId" required class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition" placeholder="아이디를 입력하세요">
+                    <input type="text" id="loginId" required class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm" placeholder="아이디를 입력하세요">
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-slate-600 mb-1">비밀번호</label>
-                    <input type="password" id="loginPw" required class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition" placeholder="••••••••">
-                </div>
-                
-                <!-- 자동 로그인 설정 -->
-                <div class="flex items-center gap-2 py-1">
-                    <input type="checkbox" id="rememberMe" checked class="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500">
-                    <label for="rememberMe" class="text-xs text-slate-500 cursor-pointer select-none">다음에도 로그인 상태 유지하기 (기록 보존)</label>
+                    <input type="password" id="loginPw" required class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm" placeholder="••••••••">
                 </div>
 
-                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg transition shadow-md flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-right-to-bracket"></i> 로그인
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg transition shadow-md flex items-center justify-center gap-2 text-sm mt-2">
+                    <i class="fa-solid fa-right-to-bracket"></i> 로그인 및 동기화 시작
                 </button>
                 <p class="text-center text-xs text-slate-500 mt-4">
                     계정이 없으신가요? <button type="button" onclick="toggleAuthMode(false)" class="text-blue-600 hover:underline font-medium">회원가입하기</button>
@@ -93,21 +83,21 @@
 
             <!-- 회원가입 폼 (기본 숨김) -->
             <form id="registerForm" class="space-y-4 hidden">
-                <h2 class="text-lg font-semibold text-slate-800 border-b pb-2">새 계정 만들기</h2>
+                <h2 class="text-lg font-semibold text-slate-800 border-b pb-2">새 계정 가입 (클라우드 생성)</h2>
                 <div>
-                    <label class="block text-xs font-medium text-slate-600 mb-1">이름 <span class="text-rose-500">*</span></label>
-                    <input type="text" id="regName" required class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition" placeholder="홍길동">
+                    <label class="block text-xs font-medium text-slate-600 mb-1">학생 이름 <span class="text-rose-500">*</span></label>
+                    <input type="text" id="regName" required class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm" placeholder="홍길동">
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-slate-600 mb-1">아이디 <span class="text-rose-500">*</span></label>
-                    <input type="text" id="regId" required class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition" placeholder="아이디를 설정하세요">
+                    <label class="block text-xs font-medium text-slate-600 mb-1">사용할 아이디 <span class="text-rose-500">*</span></label>
+                    <input type="text" id="regId" required class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm" placeholder="한글/영문 아이디를 만드세요">
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-slate-600 mb-1">비밀번호 <span class="text-rose-500">*</span></label>
-                    <input type="password" id="regPw" required class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition" placeholder="••••••••">
+                    <input type="password" id="regPw" required class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm" placeholder="6자리 이상 비밀번호">
                 </div>
-                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 rounded-lg transition shadow-md flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-user-plus"></i> 가입하기
+                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 rounded-lg transition shadow-md flex items-center justify-center gap-2 text-sm mt-2">
+                    <i class="fa-solid fa-user-plus"></i> 가입 후 클라우드 생성
                 </button>
                 <p class="text-center text-xs text-slate-500 mt-4">
                     이미 계정이 있으신가요? <button type="button" onclick="toggleAuthMode(true)" class="text-blue-600 hover:underline font-medium">로그인하기</button>
@@ -128,7 +118,7 @@
                         <h1 class="text-xl font-bold text-slate-900 tracking-tight">생기부 활동 기록기 Pro</h1>
                         <p class="text-xs text-emerald-600 font-medium flex items-center gap-1">
                             <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                            실시간 자동 저장 및 2중 안전 장치 가동 중
+                            실시간 클라우드 DB 연동 완료
                         </p>
                     </div>
                 </div>
@@ -137,7 +127,7 @@
                     <span class="text-sm font-medium text-slate-700">
                         <i class="fa-regular fa-user mr-1.5 text-slate-400"></i><strong id="userName">사용자</strong> 학생
                     </span>
-                    <button onclick="handleLogout()" class="text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-lg transition flex items-center gap-1.5">
+                    <button id="logoutBtn" class="text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-lg transition flex items-center gap-1.5">
                         <i class="fa-solid fa-arrow-right-from-bracket"></i> 로그아웃
                     </button>
                 </div>
@@ -177,7 +167,7 @@
 
                     <div>
                         <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">활동 대분류</h3>
-                        <select id="categoryFilter" onchange="renderActivities()" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                        <select id="categoryFilter" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
                             <option value="all">전체 보기</option>
                             <option value="자율활동">자율활동</option>
                             <option value="동아리활동">동아리활동</option>
@@ -190,17 +180,17 @@
                     </div>
                 </div>
 
-                <!-- 백업 및 복원 도구 -->
+                <!-- 오프라인 예비 수동 백업 (JSON 파일 추출) -->
                 <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-                    <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">안전 데이터 백업</h3>
-                    <p class="text-xs text-slate-500 leading-relaxed">혹시 모를 상황을 위해 주기적으로 내보내기 버튼을 눌러 JSON 파일을 보관해두면 안전합니다.</p>
+                    <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">예비 파일 백업</h3>
+                    <p class="text-xs text-slate-500 leading-relaxed">클라우드 연동 외에도, 오프라인으로 텍스트 파일(JSON)을 영구 보관해둘 수 있습니다.</p>
                     <div class="grid grid-cols-2 gap-2 pt-1">
-                        <button onclick="exportData()" class="px-3 py-2 text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition flex items-center justify-center gap-1">
+                        <button id="exportBtn" class="px-3 py-2 text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition flex items-center justify-center gap-1">
                             <i class="fa-solid fa-download"></i> 내보내기
                         </button>
                         <label class="px-3 py-2 text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition flex items-center justify-center gap-1 cursor-pointer text-center">
                             <i class="fa-solid fa-upload"></i> 불러오기
-                            <input type="file" id="importFile" accept=".json" onchange="importData(event)" class="hidden">
+                            <input type="file" id="importFile" accept=".json" class="hidden">
                         </label>
                     </div>
                 </div>
@@ -214,7 +204,7 @@
                         <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
                             <i class="fa-solid fa-magnifying-glass text-sm"></i>
                         </span>
-                        <input type="text" id="searchKeyword" oninput="renderActivities()" placeholder="제목, 키워드 검색..." class="w-full pl-9 pr-4 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <input type="text" id="searchKeyword" placeholder="제목, 키워드 검색..." class="w-full pl-9 pr-4 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
                     
                     <div class="flex items-center gap-2 text-xs font-medium text-slate-500 w-full md:w-auto justify-end">
@@ -224,7 +214,7 @@
 
                 <!-- 카드 리스트 영역 -->
                 <div id="activityContainer" class="space-y-4 min-h-[400px]">
-                    <!-- 동적 생성 콘텐츠 -->
+                    <!-- 동적 로드 데이터 영역 -->
                 </div>
             </section>
         </main>
@@ -238,9 +228,9 @@
             <div class="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50 rounded-t-2xl">
                 <div>
                     <h3 id="modalTitle" class="text-lg font-bold text-slate-900">새 활동 기록</h3>
-                    <!-- 실시간 동기화/임시저장 상태 표기기 -->
+                    <!-- 실시간 동기화 상태 표기기 -->
                     <span id="autoSaveIndicator" class="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1">
-                        <i class="fa-solid fa-cloud-arrow-up"></i> 작성 시작 시 임시저장이 연동됩니다
+                        <i class="fa-solid fa-cloud-arrow-up"></i> 작성 내용이 장치에 오프라인 임시 보호됩니다
                     </span>
                 </div>
                 <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 transition text-xl">
@@ -249,7 +239,7 @@
             </div>
 
             <!-- 모달 폼 바디 (스크롤 가능) -->
-            <form id="activityForm" onsubmit="saveActivity(event)" class="p-6 overflow-y-auto space-y-4 flex-grow">
+            <form id="activityForm" class="p-6 overflow-y-auto space-y-4 flex-grow">
                 <input type="hidden" id="editId">
                 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -319,14 +309,14 @@
                         <label class="block text-xs font-semibold text-slate-600">배우고 느낀 점 <span class="text-rose-500">*</span></label>
                         <span id="reflLen" class="text-[10px] text-slate-400">0자 / 1000자</span>
                     </div>
-                    <textarea id="formReflection" required rows="5" placeholder="이 활동을 통해 새롭게 알게 된 점, 변화된 생각, 더 깊이 연구하고 싶어진 후속 탐구 주제를 자세히 작성하세요. (자신만의 특색이 드러나는 생기부의 핵심 요소입니다!)" class="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition resize-none"></textarea>
+                    <textarea id="formReflection" required rows="5" placeholder="이 활동을 통해 새롭게 알게 된 점, 변화된 생각, 더 깊이 연구하고 싶어진 후속 탐구 주제를 자세히 작성하세요." class="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition resize-none"></textarea>
                 </div>
 
                 <!-- 모달 푸터 액션 버튼 -->
                 <div class="flex justify-end gap-3 pt-4 border-t border-slate-100">
                     <button type="button" onclick="closeModal()" class="px-5 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 text-sm font-medium transition">취소</button>
                     <button type="submit" class="px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition shadow flex items-center gap-1.5">
-                        <i class="fa-solid fa-save"></i> 영구 저장
+                        <i class="fa-solid fa-cloud-arrow-up"></i> 클라우드 영구 저장
                     </button>
                 </div>
             </form>
@@ -335,137 +325,34 @@
 
     <!-- 푸터 -->
     <footer class="bg-slate-900 text-slate-500 text-center py-6 text-xs border-t border-slate-800 mt-auto">
-        <p>© 2026 생기부 활동 기록기 Pro (동기화 보완판). All rights reserved.</p>
-        <p class="mt-1">기록 유실을 방지하기 위해 장치에 2중 예비 데이터 세션을 실시간으로 병합 유지하고 있습니다.</p>
+        <p>© 2026 생기부 활동 기록기 Pro. All rights reserved.</p>
+        <p class="mt-1">실시간 데이터 동기화로 브라우저 연결 환경이 새로워져도 소중한 생기부 기록은 영구적으로 보호됩니다.</p>
     </footer>
 
-    <!-- 비즈니스 로직 자바스크립트 -->
-    <script>
-        // 글로벌 상태 변수
+    <!-- Firebase SDK & Core Logic (ES Module 타입으로 2중 유실 방지 완벽 방어) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Firebase 설정 수집 및 이중 예외 처리
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+        // 전역 상태 관리
         let currentUser = null;
         let activities = [];
         let activeFilters = {
             grade: 'all',
             semester: 'all'
         };
-
-        // 실시간 저장용 타이머 변수
         let autoSaveTimer = null;
+        let firestoreUnsubscribe = null;
 
-        // DOM 렌더링 시작 시 체크
-        window.addEventListener('DOMContentLoaded', () => {
-            detectOrphanedData(); // 유실 위험 데이터 선제적 검사
-            initApp();
-            setupAutoSaveTriggers();
-        });
-
-        // 1. 초기화 및 세션 체크 (Remember Me에 따른 자동 접속)
-        function initApp() {
-            const loggedInUser = localStorage.getItem('s_logged_in_user_pro');
-            if (loggedInUser) {
-                currentUser = JSON.parse(loggedInUser);
-                loadUserData();
-                showDashboard();
-            } else {
-                // 비회원으로 임시 복구가 가능한 유저가 있을 경우 처리
-                const lastSessionId = localStorage.getItem('s_last_active_id');
-                if (lastSessionId) {
-                    const users = JSON.parse(localStorage.getItem('s_users_pro') || '{}');
-                    if (users[lastSessionId]) {
-                        // 계정이 확실히 로컬에 살아 있다면 자동 로그인 처리
-                        currentUser = { id: lastSessionId, name: users[lastSessionId].name };
-                        localStorage.setItem('s_logged_in_user_pro', JSON.stringify(currentUser));
-                        loadUserData();
-                        showDashboard();
-                        showToast(`안전하게 이전 기록이 복구되어 자동 로그인되었습니다!`, 'success');
-                        return;
-                    }
-                }
-                showAuth();
-            }
-        }
-
-        // 1-2. 게스트 비회원 바로 진입 로직
-        function startAsGuest() {
-            currentUser = { id: 'guest_user', name: '게스트' };
-            localStorage.setItem('s_logged_in_user_pro', JSON.stringify(currentUser));
-            
-            // 게스트용 가입 데이터 자동 처리
-            const users = JSON.parse(localStorage.getItem('s_users_pro') || '{}');
-            if (!users['guest_user']) {
-                users['guest_user'] = { name: '게스트', pw: 'guest1234' };
-                localStorage.setItem('s_users_pro', JSON.stringify(users));
-            }
-            
-            loadUserData();
-            showDashboard();
-            showToast('임시 게스트 모드로 시작합니다. 데이터 저장을 지원합니다!', 'info');
-        }
-
-        // 1-3. 계정이 소실되었지만, 내부에 고립되어 있던 데이터베이스를 구출하는 비상 로직
-        function detectOrphanedData() {
-            const allActivities = JSON.parse(localStorage.getItem('s_activities_pro') || '{}');
-            const loggedInUser = localStorage.getItem('s_logged_in_user_pro');
-
-            // 접속 세션이 비어있으나, 스토리지 내부에 데이터가 잔존하는 경우 구출 패널 작동
-            if (!loggedInUser && Object.keys(allActivities).length > 0) {
-                // 가장 데이터가 많은 키를 탐색
-                let largestKey = '';
-                let maxLen = 0;
-                for (const key in allActivities) {
-                    if (allActivities[key].length > maxLen) {
-                        maxLen = allActivities[key].length;
-                        largestKey = key;
-                    }
-                }
-
-                if (maxLen > 0) {
-                    document.getElementById('emergencyRestorePanel').classList.remove('hidden');
-                    // 임시 구출용 키 임시 바인딩
-                    document.getElementById('emergencyRestorePanel').dataset.rescueKey = largestKey;
-                }
-            }
-        }
-
-        // 1-4. 임시 유실 저장소 복원 실행
-        function restoreFromOrphanedStorage() {
-            const panel = document.getElementById('emergencyRestorePanel');
-            const key = panel.dataset.rescueKey;
-            
-            if (key) {
-                const allActivities = JSON.parse(localStorage.getItem('s_activities_pro') || '{}');
-                const orphanedData = allActivities[key];
-
-                // 유저 정보 임시 재설정
-                currentUser = { id: key, name: key === 'guest_user' ? '게스트' : '복구된_사용자' };
-                
-                // 만약 회원 계정풀에 정보가 매칭되지 않는다면 재생성
-                const users = JSON.parse(localStorage.getItem('s_users_pro') || '{}');
-                if (!users[key]) {
-                    users[key] = { name: currentUser.name, pw: '1234' };
-                    localStorage.setItem('s_users_pro', JSON.stringify(users));
-                }
-
-                localStorage.setItem('s_logged_in_user_pro', JSON.stringify(currentUser));
-                localStorage.setItem('s_last_active_id', currentUser.id);
-
-                activities = orphanedData;
-                saveToLocalStorage();
-                showDashboard();
-                showToast(`이전의 모든 활동 기록(${maxRescueCount(activities)}개)이 무사히 복구되었습니다!`, 'success');
-                panel.classList.add('hidden');
-            }
-        }
-
-        function maxRescueCount(arr) {
-            return Array.isArray(arr) ? arr.length : 0;
-        }
-
-        function dismissEmergencyPanel() {
-            document.getElementById('emergencyRestorePanel').classList.add('hidden');
-        }
-
-        // 2. 알림 메시지 토스트 표시
+        // 알림 메시지 토스트 표시
         function showToast(message, type = 'info') {
             const toast = document.getElementById('toast');
             const icon = document.getElementById('toastIcon');
@@ -483,14 +370,207 @@
             }
 
             toast.style.transform = 'translateY(0)';
-            
             setTimeout(() => {
                 toast.style.transform = 'translateY(-150%)';
             }, 2500);
         }
 
-        // 3. 회원가입/로그인 토글
-        function toggleAuthMode(isLogin) {
+        // 로딩 마스크 토글
+        function showLoading(text) {
+            const mask = document.getElementById('loadingMask');
+            document.getElementById('loadingText').textContent = text;
+            mask.classList.remove('hidden');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingMask').classList.add('hidden');
+        }
+
+        // 1. 앱 기동 시 인증 규칙 수립 (Mandatory Rule 3)
+        const initAuth = async () => {
+            showLoading("보안 연결 초기화 중...");
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    // Rule 3: Firebase 사용 전 최초 기본 익명 세션 구축
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Auth Init Error: ", error);
+                showToast("네트워크 연결을 확인하세요.", "error");
+            } finally {
+                hideLoading();
+            }
+        };
+
+        // DOM 로드 완료 후 인증 수립
+        window.addEventListener('DOMContentLoaded', () => {
+            initAuth();
+            setupAutoSaveTriggers();
+            bindStaticEvents();
+        });
+
+        // 2. Auth 상태 수신기 연결
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                // 익명(비회원 게스트 상태) 처리
+                if (user.isAnonymous) {
+                    showAuth();
+                } else {
+                    // 클라우드 계정 로그인 확인 시 대시보드로 이동
+                    currentUser = user;
+                    showLoading("생기부 정보를 클라우드와 매핑하는 중...");
+                    await loadUserProfileAndData(user);
+                    showDashboard();
+                    hideLoading();
+                }
+            } else {
+                showAuth();
+            }
+        });
+
+        // 프로필 정보 로드 및 데이터 바인딩 (Mandatory Rule 1, 2)
+        async function loadUserProfileAndData(user) {
+            // 사용자 이름 로드
+            const profileRef = doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'info');
+            const profileSnap = await getDoc(profileRef);
+            let profileName = "학생";
+            if (profileSnap.exists()) {
+                profileName = profileSnap.data().name || "학생";
+            }
+            document.getElementById('userName').textContent = profileName;
+
+            // 기존 이벤트 바인딩 언서브스크라이브
+            if (firestoreUnsubscribe) firestoreUnsubscribe();
+
+            // Rule 1, 2 적용: 단순 수집 후 자바스크립트에서 즉시 정렬
+            const activitiesColRef = collection(db, 'artifacts', appId, 'users', user.uid, 'activities');
+            
+            firestoreUnsubscribe = onSnapshot(activitiesColRef, (snapshot) => {
+                activities = [];
+                snapshot.forEach(docSnap => {
+                    activities.push({ id: docSnap.id, ...docSnap.data() });
+                });
+                renderActivities();
+            }, (error) => {
+                console.error("Firestore loading error: ", error);
+                showToast("데이터를 동기화하는 도중 오류가 발생했습니다.", "error");
+            });
+        }
+
+        // 3. UI 폼 처리 및 회원 가입 연동 (Id 기반 메일 가공 매핑)
+        function getIdEmail(id) {
+            return `${id.trim().toLowerCase()}@sengibu-pro.com`;
+        }
+
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('regName').value.trim();
+            const id = document.getElementById('regId').value.trim();
+            const pw = document.getElementById('regPw').value.trim();
+
+            if (pw.length < 6) {
+                showToast('비밀번호는 최소 6자리 이상으로 등록해주세요.', 'error');
+                return;
+            }
+
+            showLoading("클라우드 공간을 확보하는 중...");
+            try {
+                const email = getIdEmail(id);
+                // 계정 생성
+                const userCredential = await createUserWithEmailAndPassword(auth, email, pw);
+                const user = userCredential.user;
+
+                // 유저 프로필 및 정보 저장
+                const profileRef = doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'info');
+                await setDoc(profileRef, { name: name, createdAt: new Date().toISOString() });
+
+                showToast('성공적으로 클라우드에 가입되었습니다!', 'success');
+                document.getElementById('registerForm').reset();
+                toggleAuthMode(true);
+            } catch (error) {
+                if (error.code === 'auth/email-already-in-use') {
+                    showToast('이미 사용 중인 아이디입니다.', 'error');
+                } else {
+                    showToast('회원가입 실패. 다시 시도해 주세요.', 'error');
+                }
+            } finally {
+                hideLoading();
+            }
+        });
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('loginId').value.trim();
+            const pw = document.getElementById('loginPw').value.trim();
+
+            showLoading("로그인 정보를 검증하는 중...");
+            try {
+                const email = getIdEmail(id);
+                await signInWithEmailAndPassword(auth, email, pw);
+                showToast('로그인 성공! 원고 데이터가 연동되었습니다.', 'success');
+                document.getElementById('loginForm').reset();
+            } catch (error) {
+                showToast('아이디 또는 비밀번호가 잘못되었습니다.', 'error');
+            } finally {
+                hideLoading();
+            }
+        });
+
+        // 로그아웃
+        async function handleLogout() {
+            showLoading("로그아웃 처리 중...");
+            try {
+                if (firestoreUnsubscribe) firestoreUnsubscribe();
+                await signOut(auth);
+                // 재로그인을 원활하게 지원하기 위해 익명 로그인 상태로 돌림
+                await signInAnonymously(auth);
+                currentUser = null;
+                activities = [];
+                showAuth();
+                showToast('안전하게 연결을 종료하고 로그아웃되었습니다.', 'info');
+            } catch (error) {
+                showToast('로그아웃 도중 오류가 생겼습니다.', 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // 게스트 회원 바로 체험 시작
+        window.startAsGuest = async function() {
+            showLoading("임시 공간에 진입하는 중...");
+            try {
+                await signInAnonymously(auth);
+                currentUser = auth.currentUser;
+                
+                // 임시 가명 설정
+                document.getElementById('userName').textContent = "게스트";
+                activities = [];
+                renderActivities();
+                showDashboard();
+                showToast('체험을 환영합니다! 이 브라우저의 로컬에 안전하게 가동됩니다.', 'info');
+            } catch (err) {
+                showToast('접속 오류', 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // 화면 전환 처리
+        function showAuth() {
+            document.getElementById('authContainer').classList.remove('hidden');
+            document.getElementById('mainContainer').classList.add('hidden');
+            document.getElementById('mainContainer').classList.remove('flex');
+        }
+
+        function showDashboard() {
+            document.getElementById('authContainer').classList.add('hidden');
+            document.getElementById('mainContainer').classList.remove('hidden');
+            document.getElementById('mainContainer').classList.add('flex');
+        }
+
+        window.toggleAuthMode = function(isLogin) {
             const loginForm = document.getElementById('loginForm');
             const registerForm = document.getElementById('registerForm');
             if (isLogin) {
@@ -502,119 +582,7 @@
             }
         }
 
-        // 4. 모의 회원가입 처리
-        document.getElementById('registerForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const name = document.getElementById('regName').value.trim();
-            const id = document.getElementById('regId').value.trim().toLowerCase();
-            const pw = document.getElementById('regPw').value.trim();
-
-            if (!name || !id || !pw) {
-                showToast('모든 항목을 입력해 주세요.', 'error');
-                return;
-            }
-
-            const users = JSON.parse(localStorage.getItem('s_users_pro') || '{}');
-            if (users[id]) {
-                showToast('이미 사용 중인 아이디입니다.', 'error');
-                return;
-            }
-
-            users[id] = { name, pw };
-            localStorage.setItem('s_users_pro', JSON.stringify(users));
-            showToast('회원가입 완료! 로그인 해주세요.', 'success');
-            
-            document.getElementById('registerForm').reset();
-            toggleAuthMode(true);
-        });
-
-        // 5. 로그인 처리 및 고도화된 추적 아이디 기억 장치 연결
-        document.getElementById('loginForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const id = document.getElementById('loginId').value.trim().toLowerCase();
-            const pw = document.getElementById('loginPw').value.trim();
-            const rememberMe = document.getElementById('rememberMe').checked;
-
-            const users = JSON.parse(localStorage.getItem('s_users_pro') || '{}');
-            const user = users[id];
-
-            if (user && user.pw === pw) {
-                currentUser = { id, name: user.name };
-                
-                // 로그인 세션 상태 저장
-                localStorage.setItem('s_logged_in_user_pro', JSON.stringify(currentUser));
-                
-                // 링크가 재생성되어도 식별할 수 있도록 마지막 로그인 ID 영구 보관
-                if (rememberMe) {
-                    localStorage.setItem('s_last_active_id', id);
-                } else {
-                    localStorage.removeItem('s_last_active_id');
-                }
-
-                loadUserData();
-                showDashboard();
-                showToast(`${user.name}님, 정상 복구 및 동기화되었습니다!`, 'success');
-                document.getElementById('loginForm').reset();
-                document.getElementById('emergencyRestorePanel').classList.add('hidden');
-            } else {
-                showToast('아이디 또는 비밀번호가 잘못되었습니다.', 'error');
-            }
-        });
-
-        // 6. 로그아웃 (상태 초기화 및 기기 기억 수동 삭제)
-        function handleLogout() {
-            localStorage.removeItem('s_logged_in_user_pro');
-            localStorage.removeItem('s_last_active_id'); // 수동 로그아웃 시에는 자동 상태 기억 해제
-            currentUser = null;
-            activities = [];
-            showAuth();
-            showToast('안전하게 로그아웃 되었습니다.', 'info');
-        }
-
-        // 화면 전환 유틸리티
-        function showAuth() {
-            document.getElementById('authContainer').classList.remove('hidden');
-            document.getElementById('mainContainer').classList.add('hidden');
-            document.getElementById('mainContainer').classList.remove('flex');
-        }
-
-        function showDashboard() {
-            document.getElementById('authContainer').classList.add('hidden');
-            document.getElementById('mainContainer').classList.remove('hidden');
-            document.getElementById('mainContainer').classList.add('flex');
-            document.getElementById('userName').textContent = currentUser.name;
-        }
-
-        // 7. 데이터 로드 (게스트 및 공통 키 수용)
-        function loadUserData() {
-            const allData = JSON.parse(localStorage.getItem('s_activities_pro') || '{}');
-            activities = allData[currentUser.id] || [];
-            renderActivities();
-        }
-
-        // 8. 데이터 안전 스토리지 저장
-        function saveToLocalStorage() {
-            if (!currentUser) return;
-            const allData = JSON.parse(localStorage.getItem('s_activities_pro') || '{}');
-            allData[currentUser.id] = activities;
-            localStorage.setItem('s_activities_pro', JSON.stringify(allData));
-        }
-
-        // 9. 카테고리 색상
-        function getCategoryStyle(cat) {
-            const styles = {
-                '자율활동': { bg: 'bg-indigo-50', text: 'text-indigo-600', border: 'border-indigo-100', icon: 'fa-regular fa-compass' },
-                '동아리활동': { bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-100', icon: 'fa-solid fa-people-group' },
-                '봉사활동': { bg: 'bg-rose-50', text: 'text-rose-600', border: 'border-rose-100', icon: 'fa-solid fa-hands-holding-heart' },
-                '진로활동': { bg: 'bg-amber-50', text: 'text-amber-600', border: 'border-amber-100', icon: 'fa-solid fa-compass' },
-                '교과세특': { bg: 'bg-blue-50', text: 'text-blue-600', border: 'border-blue-100', icon: 'fa-solid fa-flask' },
-                '독서활동': { bg: 'bg-purple-50', text: 'text-purple-600', border: 'border-purple-100', icon: 'fa-solid fa-book-open-reader' },
-                '기타': { bg: 'bg-slate-50', text: 'text-slate-600', border: 'border-slate-200', icon: 'fa-solid fa-asterisk' }
-            };
-            return styles[cat] || styles['기타'];
-        }
-
-        // 10. 활동 리스트 렌더링
+        // 4. 데이터 렌더링 로직 (Rule 2 준수: 클라이언트 메모리 내에서 소팅/필터)
         function renderActivities() {
             const container = document.getElementById('activityContainer');
             const searchKeyword = document.getElementById('searchKeyword').value.toLowerCase().trim();
@@ -625,15 +593,15 @@
                 const matchSemester = activeFilters.semester === 'all' || act.semester === activeFilters.semester;
                 const matchCategory = categorySelect === 'all' || act.category === categorySelect;
                 const matchSearch = !searchKeyword || 
-                    act.title.toLowerCase().includes(searchKeyword) || 
-                    act.description.toLowerCase().includes(searchKeyword) || 
-                    act.reflection.toLowerCase().includes(searchKeyword) || 
+                    (act.title && act.title.toLowerCase().includes(searchKeyword)) || 
+                    (act.description && act.description.toLowerCase().includes(searchKeyword)) || 
+                    (act.reflection && act.reflection.toLowerCase().includes(searchKeyword)) || 
                     (act.subject && act.subject.toLowerCase().includes(searchKeyword));
 
                 return matchGrade && matchSemester && matchCategory && matchSearch;
             }).sort((a, b) => new Date(b.date) - new Date(a.date));
 
-            document.getElementById('activityCount').textContent = `검색 결과: ${filtered.length}개`;
+            document.getElementById('activityCount').textContent = `동기화된 활동: ${filtered.length}개`;
 
             if (filtered.length === 0) {
                 container.innerHTML = `
@@ -641,8 +609,8 @@
                         <div class="text-slate-300 text-5xl mb-4">
                             <i class="fa-regular fa-folder-open"></i>
                         </div>
-                        <h4 class="text-base font-semibold text-slate-700">검색 조건에 맞는 활동이 없습니다</h4>
-                        <p class="text-xs text-slate-400 mt-1">필터를 조정하거나 왼쪽 상단 버튼으로 첫 활동을 등록해 보세요.</p>
+                        <h4 class="text-base font-semibold text-slate-700">기록된 활동이 없습니다</h4>
+                        <p class="text-xs text-slate-400 mt-1">새 활동을 추가하여 생기부 작성을 시작해보세요.</p>
                     </div>
                 `;
                 return;
@@ -665,10 +633,10 @@
                             <div class="flex items-center gap-3">
                                 <span class="text-xs text-slate-400"><i class="fa-regular fa-calendar mr-1"></i>${act.date}</span>
                                 <div class="flex items-center gap-1.5 border-l pl-3 border-slate-200">
-                                    <button onclick="editActivity('${act.id}')" class="text-xs text-slate-500 hover:text-blue-600 p-1">
+                                    <button onclick="editActivity('${act.id}')" class="text-xs text-slate-500 hover:text-blue-600 p-1" title="수정">
                                         <i class="fa-regular fa-pen-to-square"></i>
                                     </button>
-                                    <button onclick="deleteActivity('${act.id}')" class="text-xs text-slate-500 hover:text-rose-600 p-1">
+                                    <button onclick="deleteActivity('${act.id}')" class="text-xs text-slate-500 hover:text-rose-600 p-1" title="삭제">
                                         <i class="fa-regular fa-trash-can"></i>
                                     </button>
                                 </div>
@@ -682,14 +650,14 @@
 
                             <div class="bg-slate-50/70 p-3.5 rounded-xl border border-slate-100">
                                 <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 flex items-center gap-1">
-                                    <i class="fa-solid fa-circle-info text-blue-500 text-[10px]"></i> 활동 기록 요약
+                                    <i class="fa-solid fa-circle-info text-blue-500 text-[10px]"></i> 활동 구체 내용
                                 </h4>
                                 <p class="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">${escapeHtml(act.description)}</p>
                             </div>
 
                             <div class="bg-blue-50/30 p-3.5 rounded-xl border border-blue-50/50">
                                 <h4 class="text-xs font-bold text-blue-500 uppercase tracking-wider mb-1.5 flex items-center gap-1">
-                                    <i class="fa-regular fa-lightbulb text-yellow-500"></i> 소감문 및 배운 점
+                                    <i class="fa-regular fa-lightbulb text-yellow-500"></i> 소감문 및 느낀 점
                                 </h4>
                                 <p class="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">${escapeHtml(act.reflection)}</p>
                             </div>
@@ -697,6 +665,19 @@
                     </article>
                 `;
             }).join('');
+        }
+
+        function getCategoryStyle(cat) {
+            const styles = {
+                '자율활동': { bg: 'bg-indigo-50', text: 'text-indigo-600', border: 'border-indigo-100', icon: 'fa-regular fa-compass' },
+                '동아리활동': { bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-100', icon: 'fa-solid fa-people-group' },
+                '봉사활동': { bg: 'bg-rose-50', text: 'text-rose-600', border: 'border-rose-100', icon: 'fa-solid fa-hands-holding-heart' },
+                '진로활동': { bg: 'bg-amber-50', text: 'text-amber-600', border: 'border-amber-100', icon: 'fa-solid fa-compass' },
+                '교과세특': { bg: 'bg-blue-50', text: 'text-blue-600', border: 'border-blue-100', icon: 'fa-solid fa-flask' },
+                '독서활동': { bg: 'bg-purple-50', text: 'text-purple-600', border: 'border-purple-100', icon: 'fa-solid fa-book-open-reader' },
+                '기타': { bg: 'bg-slate-50', text: 'text-slate-600', border: 'border-slate-200', icon: 'fa-solid fa-asterisk' }
+            };
+            return styles[cat] || styles['기타'];
         }
 
         function escapeHtml(str) {
@@ -709,34 +690,12 @@
                 .replace(/'/g, "&#039;");
         }
 
-        function setFilter(type, value) {
-            activeFilters[type] = value;
-            
-            const buttons = document.querySelectorAll(`.filter-btn-${type}`);
-            buttons.forEach(btn => {
-                const btnVal = btn.getAttribute('data-val');
-                if (btnVal === value) {
-                    btn.className = `filter-btn-${type} active px-3 py-2 text-sm font-medium rounded-lg text-center transition bg-blue-50 text-blue-600 border border-blue-100`;
-                    if (type === 'semester') {
-                        btn.className = `filter-btn-semester active px-2 py-2 text-xs font-medium rounded-lg text-center transition bg-blue-50 text-blue-600 border border-blue-100`;
-                    }
-                } else {
-                    btn.className = `filter-btn-${type} px-3 py-2 text-sm font-medium rounded-lg text-center transition bg-slate-50 text-slate-600 border border-transparent hover:bg-slate-100`;
-                    if (type === 'semester') {
-                        btn.className = `filter-btn-semester px-2 py-2 text-xs font-medium rounded-lg text-center transition bg-slate-50 text-slate-600 border border-transparent hover:bg-slate-100`;
-                    }
-                }
-            });
-
-            renderActivities();
-        }
-
-        // 12. 모달 열기
-        function openAddModal() {
-            document.getElementById('modalTitle').textContent = '새 활동 기록 추가';
+        // 5. 모달 제어 및 클라우드 데이터 작성 저장 (Rule 3 준수)
+        window.openAddModal = function() {
+            document.getElementById('modalTitle').textContent = '새 생기부 활동 기록';
             document.getElementById('activityForm').reset();
             document.getElementById('editId').value = '';
-            
+
             const today = new Date().toISOString().substring(0, 10);
             document.getElementById('formDate').value = today;
 
@@ -748,20 +707,25 @@
             checkDraftData();
         }
 
-        function closeModal() {
+        window.closeModal = function() {
             document.getElementById('activityModal').classList.add('hidden');
             if (autoSaveTimer) {
                 clearTimeout(autoSaveTimer);
                 autoSaveTimer = null;
             }
-            document.getElementById('autoSaveIndicator').innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> 작성 시작 시 임시저장이 연동됩니다`;
+            document.getElementById('autoSaveIndicator').innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> 작성 내용이 장치에 오프라인 임시 보호됩니다`;
             document.getElementById('autoSaveIndicator').className = "text-[11px] text-slate-400 mt-0.5 flex items-center gap-1";
         }
 
-        // 13. 저장
-        function saveActivity(e) {
+        document.getElementById('activityForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
+            // Rule 3: 저장소 조작 전 인증 유저 검증
+            if (!auth.currentUser) {
+                showToast('인증 정보가 만료되었습니다. 다시 로그인 해 주세요.', 'error');
+                return;
+            }
+
             const editId = document.getElementById('editId').value;
             const grade = document.getElementById('formGrade').value;
             const semester = document.getElementById('formSemester').value;
@@ -773,42 +737,40 @@
             const reflection = document.getElementById('formReflection').value.trim();
 
             if (!grade || !semester || !category || !date || !title || !description || !reflection) {
-                showToast('필수 항목들을 다 적어주세요.', 'error');
+                showToast('필수 정보를 기입해 주세요.', 'error');
                 return;
             }
 
-            if (editId) {
-                const index = activities.findIndex(act => act.id === editId);
-                if (index !== -1) {
-                    activities[index] = {
-                        ...activities[index],
-                        grade, semester, category, date, subject, title, description, reflection
-                    };
-                    showToast('성공적으로 수정되었습니다.', 'success');
-                }
-            } else {
-                const newActivity = {
-                    id: 'act_' + Date.now(),
-                    grade, semester, category, date, subject, title, description, reflection
-                };
-                activities.push(newActivity);
-                showToast('성공적으로 등록 완료되었습니다!', 'success');
+            const docId = editId ? editId : 'act_' + Date.now();
+            showLoading("클라우드 영구 동기화 중...");
+
+            try {
+                // Rule 1: 안전경로 매핑
+                const docRef = doc(db, 'artifacts', appId, 'users', auth.currentUser.uid, 'activities', docId);
+                await setDoc(docRef, {
+                    grade, semester, category, date, subject, title, description, reflection,
+                    updatedAt: new Date().toISOString()
+                });
+
+                // 임시 임프린트 드래프트 소거
+                localStorage.removeItem(`s_cloud_draft_${auth.currentUser.uid}`);
+                
+                showToast('클라우드 서버에 안전하게 세이브되었습니다.', 'success');
+                closeModal();
+            } catch (err) {
+                console.error("Save Error: ", err);
+                showToast('클라우드 저장 실패. 임시 저장 및 백업 기능을 사용해 주세요.', 'error');
+            } finally {
+                hideLoading();
             }
+        });
 
-            // 임시 세이브 흔적 소거
-            localStorage.removeItem(`s_draft_${currentUser.id}`);
-
-            saveToLocalStorage();
-            renderActivities();
-            closeModal();
-        }
-
-        // 14. 수정 모드 시작
-        function editActivity(id) {
+        // 수정 매핑
+        window.editActivity = function(id) {
             const act = activities.find(a => a.id === id);
             if (!act) return;
 
-            document.getElementById('modalTitle').textContent = '기록 원고 수정';
+            document.getElementById('modalTitle').textContent = '기록 수정 (클라우드 업데이트)';
             document.getElementById('editId').value = act.id;
             document.getElementById('formGrade').value = act.grade;
             document.getElementById('formSemester').value = act.semester;
@@ -825,18 +787,25 @@
             document.getElementById('activityModal').classList.remove('hidden');
         }
 
-        // 15. 활동 삭제
-        function deleteActivity(id) {
-            const result = confirm('활동을 완전히 삭제하시겠습니까?\n삭제된 내용은 백업 파일 없이는 복원할 수 없습니다.');
-            if (result) {
-                activities = activities.filter(act => act.id !== id);
-                saveToLocalStorage();
-                renderActivities();
-                showToast('해당 활동이 삭제 완료되었습니다.', 'info');
+        // 활동 원고 삭제
+        window.deleteActivity = async function(id) {
+            if (!auth.currentUser) return;
+            const confirmDel = confirm('이 생기부 활동 원고를 클라우드에서 영구히 지우겠습니까?');
+            if (confirmDel) {
+                showLoading("삭제 처리 중...");
+                try {
+                    const docRef = doc(db, 'artifacts', appId, 'users', auth.currentUser.uid, 'activities', id);
+                    await deleteDoc(docRef);
+                    showToast('성공적으로 삭제되었습니다.', 'info');
+                } catch (err) {
+                    showToast('삭제 실패', 'error');
+                } finally {
+                    hideLoading();
+                }
             }
         }
 
-        // 16. 글자 수 카운터 및 실시간 변경사항 자동 저장 시스템
+        // 6. 글자수 카운터 및 템포러리 예비 임시저장
         function updateCharCount(areaId, targetLenId) {
             const area = document.getElementById(areaId);
             const target = document.getElementById(targetLenId);
@@ -847,10 +816,8 @@
 
         function setupAutoSaveTriggers() {
             const formElements = ['formGrade', 'formSemester', 'formCategory', 'formDate', 'formSubject', 'formTitle', 'formDescription', 'formReflection'];
-            
             formElements.forEach(elemId => {
                 const element = document.getElementById(elemId);
-                
                 if (elemId === 'formDescription') {
                     element.addEventListener('input', () => {
                         updateCharCount('formDescription', 'descLen');
@@ -869,27 +836,26 @@
         }
 
         function triggerAutoSave() {
-            if (!currentUser) return;
-            
+            if (!auth.currentUser) return;
+
             const indicator = document.getElementById('autoSaveIndicator');
             indicator.className = "text-[11px] text-amber-500 mt-0.5 flex items-center gap-1";
-            indicator.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> 로컬 임시 세션 기록 중...`;
+            indicator.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> 실시간 내용 오프라인 버퍼링...`;
 
             if (autoSaveTimer) clearTimeout(autoSaveTimer);
-
             autoSaveTimer = setTimeout(() => {
                 saveDraftData();
-            }, 1000); 
+            }, 1000);
         }
 
         function saveDraftData() {
-            if (!currentUser) return;
+            if (!auth.currentUser) return;
 
             const editId = document.getElementById('editId').value;
             if (editId) {
                 const indicator = document.getElementById('autoSaveIndicator');
                 indicator.className = "text-[11px] text-blue-500 mt-0.5 flex items-center gap-1";
-                indicator.innerHTML = `<i class="fa-solid fa-square-pen"></i> 기존 기록 수정 진행 중`;
+                indicator.innerHTML = `<i class="fa-solid fa-square-pen"></i> 기존 활동 편집 중`;
                 return;
             }
 
@@ -908,28 +874,24 @@
             if (!draft.title && !draft.description && !draft.reflection) {
                 const indicator = document.getElementById('autoSaveIndicator');
                 indicator.className = "text-[11px] text-slate-400 mt-0.5 flex items-center gap-1";
-                indicator.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> 작성 시작 시 임시저장이 연동됩니다`;
+                indicator.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> 작성 내용이 장치에 오프라인 임시 보호됩니다`;
                 return;
             }
 
-            localStorage.setItem(`s_draft_${currentUser.id}`, JSON.stringify(draft));
-            
+            localStorage.setItem(`s_cloud_draft_${auth.currentUser.uid}`, JSON.stringify(draft));
             const indicator = document.getElementById('autoSaveIndicator');
             indicator.className = "text-[11px] text-emerald-600 mt-0.5 flex items-center gap-1 font-medium";
-            const curTime = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-            indicator.innerHTML = `<i class="fa-solid fa-circle-check"></i> [오후 ${curTime}] 자동 임시저장 성공`;
+            indicator.innerHTML = `<i class="fa-solid fa-circle-check"></i> 작성 중인 내용 임시 보관 완료`;
         }
 
         function checkDraftData() {
-            if (!currentUser) return;
-            const savedDraftStr = localStorage.getItem(`s_draft_${currentUser.id}`);
+            if (!auth.currentUser) return;
+            const savedDraftStr = localStorage.getItem(`s_cloud_draft_${auth.currentUser.uid}`);
             if (savedDraftStr) {
                 const draft = JSON.parse(savedDraftStr);
-                const draftDate = new Date(draft.timestamp).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
-                
                 if (draft.title || draft.description || draft.reflection) {
                     setTimeout(() => {
-                        const restoreConfirm = confirm(`[복구 안내]\n작업 중이던 미완성 임시 원고가 발견되었습니다. (${draftDate} 자동 임시저장됨)\n\n이전 작성 내용을 가져오시겠습니까?`);
+                        const restoreConfirm = confirm(`[임시 원고 복구]\n최근에 완성하지 못하고 종료한 작성 원고가 있습니다.\n\n이전 기록을 불러오시겠습니까?`);
                         if (restoreConfirm) {
                             document.getElementById('formGrade').value = draft.grade || '1';
                             document.getElementById('formSemester').value = draft.semester || '1';
@@ -942,71 +904,101 @@
                             
                             updateCharCount('formDescription', 'descLen');
                             updateCharCount('formReflection', 'reflLen');
-
-                            showToast('작성 중이던 문서 복원 완료!', 'success');
+                            showToast('작성 중이던 문서를 불러왔습니다.', 'success');
                         } else {
-                            localStorage.removeItem(`s_draft_${currentUser.id}`);
+                            localStorage.removeItem(`s_cloud_draft_${auth.currentUser.uid}`);
                         }
-                    }, 200);
+                    }, 100);
                 }
             }
         }
 
-        // 17. 내보내기/가져오기 기능
+        // 7. 정적 이벤트 및 내보내기/가져오기 기능
+        function bindStaticEvents() {
+            document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+            document.getElementById('exportBtn').addEventListener('click', exportData);
+            document.getElementById('importFile').addEventListener('change', importData);
+            document.getElementById('categoryFilter').addEventListener('change', renderActivities);
+            document.getElementById('searchKeyword').addEventListener('input', renderActivities);
+        }
+
+        window.setFilter = function(type, value) {
+            activeFilters[type] = value;
+            const buttons = document.querySelectorAll(`.filter-btn-${type}`);
+            buttons.forEach(btn => {
+                const btnVal = btn.getAttribute('data-val');
+                if (btnVal === value) {
+                    btn.className = `filter-btn-${type} active px-3 py-2 text-sm font-medium rounded-lg text-center transition bg-blue-50 text-blue-600 border border-blue-100`;
+                    if (type === 'semester') {
+                        btn.className = `filter-btn-semester active px-2 py-2 text-xs font-medium rounded-lg text-center transition bg-blue-50 text-blue-600 border border-blue-100`;
+                    }
+                } else {
+                    btn.className = `filter-btn-${type} px-3 py-2 text-sm font-medium rounded-lg text-center transition bg-slate-50 text-slate-600 border border-transparent hover:bg-slate-100`;
+                    if (type === 'semester') {
+                        btn.className = `filter-btn-semester px-2 py-2 text-xs font-medium rounded-lg text-center transition bg-slate-50 text-slate-600 border border-transparent hover:bg-slate-100`;
+                    }
+                }
+            });
+            renderActivities();
+        }
+
         function exportData() {
             if (activities.length === 0) {
                 showToast('백업할 데이터가 존재하지 않습니다.', 'error');
                 return;
             }
-
             const payload = {
-                owner: currentUser.name,
-                ownerId: currentUser.id,
+                ownerId: auth.currentUser?.uid || 'anonymous',
                 exportedAt: new Date().toISOString(),
                 data: activities
             };
-
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(payload, null, 2));
             const downloadAnchor = document.createElement('a');
             downloadAnchor.setAttribute("href", dataStr);
-            downloadAnchor.setAttribute("download", `생기부기록_Pro_${currentUser.name}_${new Date().toISOString().slice(0,10)}.json`);
+            downloadAnchor.setAttribute("download", `생기부Pro_백업_${new Date().toISOString().slice(0,10)}.json`);
             document.body.appendChild(downloadAnchor);
             downloadAnchor.click();
             downloadAnchor.remove();
-            showToast('안전하게 백업 JSON 파일이 내보내졌습니다.', 'success');
+            showToast('백업용 JSON 파일이 무사히 내보내졌습니다.', 'success');
         }
 
-        function importData(event) {
+        async function importData(event) {
             const file = event.target.files[0];
-            if (!file) return;
+            if (!file || !auth.currentUser) return;
 
             const reader = new FileReader();
-            reader.onload = function(e) {
+            reader.onload = async function(e) {
                 try {
                     const parsed = JSON.parse(e.target.result);
                     if (parsed && Array.isArray(parsed.data)) {
-                        const confirmImport = confirm(`백업파일 데이터를 가져오겠습니다.\n\n현재 화면에 있는 기록들과 합쳐서 병합하시겠습니까?\n('취소'를 누르시면 기존 내용물을 무시하고 백업 파일만 채워 넣습니다.)`);
+                        const confirmImport = confirm(`백업 파일 내의 기록 ${parsed.data.length}개를 가져옵니다.\n\n현재 내 클라우드에 덮어쓸까요?\n('확인' 시 덮어쓰기 진행, '취소' 시 취소합니다)`);
                         
                         if (confirmImport) {
-                            const currentIds = new Set(activities.map(a => a.id));
-                            parsed.data.forEach(item => {
-                                if (!currentIds.has(item.id)) {
-                                    activities.push(item);
-                                }
-                            });
-                            showToast('중복 데이터 제외 병합 성공!', 'success');
-                        } else {
-                            activities = parsed.data;
-                            showToast('백업 데이터 덮어쓰기 완료!', 'success');
+                            showLoading("클라우드로 이식 병합 중...");
+                            for (const item of parsed.data) {
+                                const docId = item.id || 'act_' + Date.now() + Math.random().toString(36).substr(2, 5);
+                                const docRef = doc(db, 'artifacts', appId, 'users', auth.currentUser.uid, 'activities', docId);
+                                await setDoc(docRef, {
+                                    grade: item.grade || '1',
+                                    semester: item.semester || '1',
+                                    category: item.category || '기타',
+                                    date: item.date || new Date().toISOString().substring(0,10),
+                                    subject: item.subject || '',
+                                    title: item.title || '',
+                                    description: item.description || '',
+                                    reflection: item.reflection || '',
+                                    updatedAt: new Date().toISOString()
+                                });
+                            }
+                            showToast('모든 가져오기 데이터가 클라우드에 완전 동기화되었습니다!', 'success');
                         }
-                        
-                        saveToLocalStorage();
-                        renderActivities();
                     } else {
-                        showToast('비정상적이거나 손상된 구조의 백업본입니다.', 'error');
+                        showToast('유효하지 않은 백업 데이터 파일입니다.', 'error');
                     }
                 } catch (err) {
-                    showToast('백업 파일을 처리할 수 없습니다.', 'error');
+                    showToast('파일 처리 도중 오류가 발생했습니다.', 'error');
+                } finally {
+                    hideLoading();
                 }
             };
             reader.readAsText(file);
