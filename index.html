@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>생기부 활동 기록기 Pro (안정화 클라우드 버전)</title>
+    <title>생기부 활동 기록기 Pro (통합 동기화 안정판)</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Font Awesome Icons -->
@@ -34,7 +34,7 @@
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
 
     <!-- 알림 메시지 토스트 -->
-    <div id="toast" class="fixed top-5 right-5 z-50 transform translate-y-[-150%] transition-transform duration-300 bg-slate-900 text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3">
+    <div id="toast" class="fixed top-5 right-5 z-[200] transform translate-y-[-150%] transition-transform duration-300 bg-slate-900 text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3">
         <i id="toastIcon" class="fa-solid fa-circle-info text-blue-400"></i>
         <span id="toastMessage">알림 메시지</span>
     </div>
@@ -43,26 +43,34 @@
     <div id="loadingMask" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center hidden">
         <div class="bg-white px-6 py-5 rounded-2xl shadow-xl flex items-center gap-3">
             <i class="fa-solid fa-circle-notch animate-spin text-2xl text-blue-600"></i>
-            <span id="loadingText" class="text-sm font-semibold text-slate-700">클라우드 동기화 중...</span>
+            <span id="loadingText" class="text-sm font-semibold text-slate-700">안전 연결 수립 중...</span>
         </div>
     </div>
 
     <!-- 1. 로그인 / 회원가입 화면 -->
     <div id="authContainer" class="flex-grow flex items-center justify-center p-4">
         <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-100">
+            
+            <!-- 상태 배지 (클라우드/로컬 활성화 여부 직관 표시) -->
+            <div class="flex justify-end mb-2">
+                <span id="connectionBadge" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border">
+                    <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span> 연결 준비 중
+                </span>
+            </div>
+
             <div class="text-center mb-6">
-                <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl mb-4">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl mb-3">
                     <i class="fa-solid fa-cloud-arrow-up text-2xl"></i>
                 </div>
                 <h1 class="text-2xl font-bold text-slate-900">생기부 활동 기록기 Pro</h1>
-                <p class="text-slate-500 text-sm mt-1">클라우드 동기화로 다른 기기에서도 로그인만 하면 복구됩니다</p>
+                <p class="text-slate-500 text-xs mt-1">2중 안전 저장소로 어떠한 환경에서도 기록을 지켜냅니다</p>
             </div>
 
             <!-- 로그인 폼 -->
             <form id="loginForm" class="space-y-4">
                 <h2 class="text-lg font-semibold text-slate-800 border-b pb-2 flex justify-between items-center">
                     <span>로그인</span>
-                    <button type="button" id="guestBtn" class="text-xs text-blue-600 hover:underline font-normal">체험용 게스트 시작</button>
+                    <button type="button" onclick="window.startAsGuest()" class="text-xs text-blue-600 hover:underline font-normal">비회원으로 시작</button>
                 </h2>
                 <div>
                     <label class="block text-xs font-medium text-slate-600 mb-1">아이디</label>
@@ -74,33 +82,33 @@
                 </div>
 
                 <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg transition shadow-md flex items-center justify-center gap-2 text-sm mt-2">
-                    <i class="fa-solid fa-right-to-bracket"></i> 로그인 및 동기화 시작
+                    <i class="fa-solid fa-right-to-bracket"></i> 로그인 및 동기화
                 </button>
                 <p class="text-center text-xs text-slate-500 mt-4">
-                    계정이 없으신가요? <button type="button" id="toRegisterBtn" class="text-blue-600 hover:underline font-medium">회원가입하기</button>
+                    계정이 없으신가요? <button type="button" onclick="window.toggleAuthMode(false)" class="text-blue-600 hover:underline font-medium">회원가입하기</button>
                 </p>
             </form>
 
             <!-- 회원가입 폼 (기본 숨김) -->
             <form id="registerForm" class="space-y-4 hidden">
-                <h2 class="text-lg font-semibold text-slate-800 border-b pb-2">새 계정 가입 (클라우드 생성)</h2>
+                <h2 class="text-lg font-semibold text-slate-800 border-b pb-2">새 계정 생성</h2>
                 <div>
                     <label class="block text-xs font-medium text-slate-600 mb-1">학생 이름 <span class="text-rose-500">*</span></label>
-                    <input type="text" id="regName" required class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm" placeholder="홍길동">
+                    <input type="text" id="regName" required class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm" placeholder="예: 홍길동">
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-slate-600 mb-1">사용할 아이디 <span class="text-rose-500">*</span></label>
-                    <input type="text" id="regId" required class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm" placeholder="사용할 아이디">
+                    <label class="block text-xs font-medium text-slate-600 mb-1">아이디 설정 <span class="text-rose-500">*</span></label>
+                    <input type="text" id="regId" required class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm" placeholder="아이디를 정하세요">
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-slate-600 mb-1">비밀번호 <span class="text-rose-500">*</span></label>
-                    <input type="password" id="regPw" required class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm" placeholder="6자리 이상 비밀번호">
+                    <input type="password" id="regPw" required class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm" placeholder="최소 6글자 이상">
                 </div>
                 <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 rounded-lg transition shadow-md flex items-center justify-center gap-2 text-sm mt-2">
-                    <i class="fa-solid fa-user-plus"></i> 가입 후 클라우드 생성
+                    <i class="fa-solid fa-user-plus"></i> 가입 완료
                 </button>
                 <p class="text-center text-xs text-slate-500 mt-4">
-                    이미 계정이 있으신가요? <button type="button" id="toLoginBtn" class="text-blue-600 hover:underline font-medium">로그인하기</button>
+                    이미 가입하셨나요? <button type="button" onclick="window.toggleAuthMode(true)" class="text-blue-600 hover:underline font-medium">로그인하기</button>
                 </p>
             </form>
         </div>
@@ -118,7 +126,7 @@
                         <h1 class="text-xl font-bold text-slate-900 tracking-tight">생기부 활동 기록기 Pro</h1>
                         <p class="text-xs text-emerald-600 font-medium flex items-center gap-1">
                             <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                            실시간 클라우드 DB 연동 완료
+                            <span id="syncModeText">실시간 동기화 가동 중</span>
                         </p>
                     </div>
                 </div>
@@ -127,7 +135,7 @@
                     <span class="text-sm font-medium text-slate-700">
                         <i class="fa-regular fa-user mr-1.5 text-slate-400"></i><strong id="userName">사용자</strong> 학생
                     </span>
-                    <button id="logoutBtn" class="text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-lg transition flex items-center gap-1.5">
+                    <button onclick="window.handleLogout()" class="text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-lg transition flex items-center gap-1.5">
                         <i class="fa-solid fa-arrow-right-from-bracket"></i> 로그아웃
                     </button>
                 </div>
@@ -140,7 +148,7 @@
             <!-- 왼쪽: 필터 및 관리 패널 -->
             <aside class="space-y-4 lg:col-span-1">
                 <!-- 새 활동 추가 버튼 -->
-                <button id="openAddModalBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl shadow-lg shadow-blue-100 transition flex items-center justify-center gap-2">
+                <button onclick="window.openAddModal()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl shadow-lg shadow-blue-100 transition flex items-center justify-center gap-2">
                     <i class="fa-solid fa-plus"></i> 새 활동 기록하기
                 </button>
 
@@ -149,25 +157,25 @@
                     <div>
                         <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">학년 필터</h3>
                         <div class="grid grid-cols-2 gap-2" id="gradeFilterArea">
-                            <button id="filterGradeAll" class="filter-btn-grade active px-3 py-2 text-sm font-medium rounded-lg text-center transition bg-blue-50 text-blue-600 border border-blue-100" data-val="all">전체</button>
-                            <button id="filterGrade1" class="filter-btn-grade px-3 py-2 text-sm font-medium rounded-lg text-center transition bg-slate-50 text-slate-600 border border-transparent hover:bg-slate-100" data-val="1">1학년</button>
-                            <button id="filterGrade2" class="filter-btn-grade px-3 py-2 text-sm font-medium rounded-lg text-center transition bg-slate-50 text-slate-600 border border-transparent hover:bg-slate-100" data-val="2">2학년</button>
-                            <button id="filterGrade3" class="filter-btn-grade px-3 py-2 text-sm font-medium rounded-lg text-center transition bg-slate-50 text-slate-600 border border-transparent hover:bg-slate-100" data-val="3">3학년</button>
+                            <button onclick="window.setFilter('grade', 'all')" class="filter-btn-grade active px-3 py-2 text-sm font-medium rounded-lg text-center transition bg-blue-50 text-blue-600 border border-blue-100" data-val="all">전체</button>
+                            <button onclick="window.setFilter('grade', '1')" class="filter-btn-grade px-3 py-2 text-sm font-medium rounded-lg text-center transition bg-slate-50 text-slate-600 border border-transparent hover:bg-slate-100" data-val="1">1학년</button>
+                            <button onclick="window.setFilter('grade', '2')" class="filter-btn-grade px-3 py-2 text-sm font-medium rounded-lg text-center transition bg-slate-50 text-slate-600 border border-transparent hover:bg-slate-100" data-val="2">2학년</button>
+                            <button onclick="window.setFilter('grade', '3')" class="filter-btn-grade px-3 py-2 text-sm font-medium rounded-lg text-center transition bg-slate-50 text-slate-600 border border-transparent hover:bg-slate-100" data-val="3">3학년</button>
                         </div>
                     </div>
 
                     <div>
                         <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">학기 필터</h3>
                         <div class="grid grid-cols-3 gap-2" id="semesterFilterArea">
-                            <button id="filterSemesterAll" class="filter-btn-semester active px-2 py-2 text-xs font-medium rounded-lg text-center transition bg-blue-50 text-blue-600 border border-blue-100" data-val="all">전체</button>
-                            <button id="filterSemester1" class="filter-btn-semester px-2 py-2 text-xs font-medium rounded-lg text-center transition bg-slate-50 text-slate-600 border border-transparent hover:bg-slate-100" data-val="1">1학기</button>
-                            <button id="filterSemester2" class="filter-btn-semester px-2 py-2 text-xs font-medium rounded-lg text-center transition bg-slate-50 text-slate-600 border border-transparent hover:bg-slate-100" data-val="2">2학기</button>
+                            <button onclick="window.setFilter('semester', 'all')" class="filter-btn-semester active px-2 py-2 text-xs font-medium rounded-lg text-center transition bg-blue-50 text-blue-600 border border-blue-100" data-val="all">전체</button>
+                            <button onclick="window.setFilter('semester', '1')" class="filter-btn-semester px-2 py-2 text-xs font-medium rounded-lg text-center transition bg-slate-50 text-slate-600 border border-transparent hover:bg-slate-100" data-val="1">1학기</button>
+                            <button onclick="window.setFilter('semester', '2')" class="filter-btn-semester px-2 py-2 text-xs font-medium rounded-lg text-center transition bg-slate-50 text-slate-600 border border-transparent hover:bg-slate-100" data-val="2">2학기</button>
                         </div>
                     </div>
 
                     <div>
                         <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">활동 대분류</h3>
-                        <select id="categoryFilter" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                        <select id="categoryFilter" onchange="window.renderActivities()" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
                             <option value="all">전체 보기</option>
                             <option value="자율활동">자율활동</option>
                             <option value="동아리활동">동아리활동</option>
@@ -180,17 +188,17 @@
                     </div>
                 </div>
 
-                <!-- 오프라인 예비 수동 백업 -->
+                <!-- 파일 수동 추출 백업 -->
                 <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-                    <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">예비 파일 백업</h3>
-                    <p class="text-xs text-slate-500 leading-relaxed">클라우드 외에도 수동으로 JSON 백업 파일을 내 컴퓨터/휴대폰에 저장할 수 있습니다.</p>
+                    <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">로컬 파일 백업</h3>
+                    <p class="text-xs text-slate-500 leading-relaxed">혹시 모를 상황을 대비해 주기적으로 텍스트 파일(JSON)을 개인 소장할 수 있습니다.</p>
                     <div class="grid grid-cols-2 gap-2 pt-1">
-                        <button id="exportBtn" class="px-3 py-2 text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition flex items-center justify-center gap-1">
+                        <button onclick="window.exportData()" class="px-3 py-2 text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition flex items-center justify-center gap-1">
                             <i class="fa-solid fa-download"></i> 내보내기
                         </button>
                         <label class="px-3 py-2 text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition flex items-center justify-center gap-1 cursor-pointer text-center">
                             <i class="fa-solid fa-upload"></i> 불러오기
-                            <input type="file" id="importFile" accept=".json" class="hidden">
+                            <input type="file" id="importFile" accept=".json" onchange="window.importData(event)" class="hidden">
                         </label>
                     </div>
                 </div>
@@ -198,13 +206,13 @@
 
             <!-- 오른쪽: 메인 활동 리스트 -->
             <section class="lg:col-span-3 space-y-4">
-                <!-- 리스트 유틸바 -->
+                <!-- 리스트 상단 제어바 -->
                 <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-3 justify-between items-center">
                     <div class="relative w-full md:max-w-xs">
                         <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
                             <i class="fa-solid fa-magnifying-glass text-sm"></i>
                         </span>
-                        <input type="text" id="searchKeyword" placeholder="제목, 키워드 검색..." class="w-full pl-9 pr-4 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <input type="text" id="searchKeyword" oninput="window.renderActivities()" placeholder="제목, 키워드 검색..." class="w-full pl-9 pr-4 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
                     
                     <div class="flex items-center gap-2 text-xs font-medium text-slate-500 w-full md:w-auto justify-end">
@@ -214,7 +222,7 @@
 
                 <!-- 카드 리스트 영역 -->
                 <div id="activityContainer" class="space-y-4 min-h-[400px]">
-                    <!-- 동적 로드 데이터 영역 -->
+                    <!-- 동적 콘텐츠 바인딩 -->
                 </div>
             </section>
         </main>
@@ -229,16 +237,16 @@
                 <div>
                     <h3 id="modalTitle" class="text-lg font-bold text-slate-900">새 활동 기록</h3>
                     <span id="autoSaveIndicator" class="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1">
-                        <i class="fa-solid fa-cloud-arrow-up"></i> 작성 내용이 장치에 실시간 임시 보관됩니다
+                        <i class="fa-solid fa-cloud-arrow-up"></i> 작성 시작 시 기기에 안전 버퍼가 생성됩니다
                     </span>
                 </div>
-                <button type="button" id="closeModalBtn" class="text-slate-400 hover:text-slate-600 transition text-xl">
+                <button type="button" onclick="window.closeModal()" class="text-slate-400 hover:text-slate-600 transition text-xl">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
 
             <!-- 모달 폼 바디 -->
-            <form id="activityForm" class="p-6 overflow-y-auto space-y-4 flex-grow">
+            <form id="activityForm" onsubmit="window.saveActivity(event)" class="p-6 overflow-y-auto space-y-4 flex-grow">
                 <input type="hidden" id="editId">
                 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -308,14 +316,14 @@
                         <label class="block text-xs font-semibold text-slate-600">배우고 느낀 점 <span class="text-rose-500">*</span></label>
                         <span id="reflLen" class="text-[10px] text-slate-400">0자 / 1000자</span>
                     </div>
-                    <textarea id="formReflection" required rows="5" placeholder="이 활동을 통해 새롭게 알게 된 점, 변화된 생각, 더 깊이 연구하고 싶어진 후속 탐구 주제를 작성하세요." class="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition resize-none"></textarea>
+                    <textarea id="formReflection" required rows="5" placeholder="이 활동을 통해 새롭게 알게 된 점, 변화된 생각, 후속 탐구 연계 아이디어를 적어보세요." class="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition resize-none"></textarea>
                 </div>
 
                 <!-- 모달 푸터 액션 버튼 -->
                 <div class="flex justify-end gap-3 pt-4 border-t border-slate-100">
-                    <button type="button" id="cancelModalBtn" class="px-5 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 text-sm font-medium transition">취소</button>
+                    <button type="button" onclick="window.closeModal()" class="px-5 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 text-sm font-medium transition">취소</button>
                     <button type="submit" class="px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition shadow flex items-center gap-1.5">
-                        <i class="fa-solid fa-cloud-arrow-up"></i> 클라우드 영구 저장
+                        <i class="fa-solid fa-cloud-arrow-up"></i> 안전 저장하기
                     </button>
                 </div>
             </form>
@@ -324,24 +332,58 @@
 
     <!-- 푸터 -->
     <footer class="bg-slate-900 text-slate-500 text-center py-6 text-xs border-t border-slate-800 mt-auto">
-        <p>© 2026 생기부 활동 기록기 Pro. All rights reserved.</p>
-        <p class="mt-1">실시간 데이터 동기화로 어디서나 끊김 없이 소중한 생기부 원고를 이어 쓸 수 있습니다.</p>
+        <p>© 2026 생기부 활동 기록기 Pro (통합 안정판). All rights reserved.</p>
+        <p class="mt-1">개인 클라우드 계정 관리 및 로컬 하이브리드 안전 저장 시스템 작동 중</p>
     </footer>
 
-    <!-- Firebase SDK & Core Logic (ES Module 타입) -->
+    <!-- Firebase SDK & Core Logic (동기화 하이브리드 설계) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Firebase 설정 수집 및 예외 대비
-        const firebaseConfig = JSON.parse(__firebase_config);
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        // 전역 가동 엔진 상태값 정의
+        let db = null;
+        let auth = null;
+        let appId = 'default-app-id';
+        let useCloud = false;
 
-        // 전역 상태 변수
+        // 클라우드 상태 모니터링 배지 세팅용 함수
+        function updateConnectionState(status) {
+            const badge = document.getElementById('connectionBadge');
+            const syncText = document.getElementById('syncModeText');
+            if(!badge) return;
+
+            if (status === 'cloud') {
+                badge.className = "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200";
+                badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> 실시간 클라우드 모드`;
+                if(syncText) syncText.textContent = "실시간 클라우드 DB 연동 완료";
+            } else {
+                badge.className = "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200";
+                badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> 로컬 안전 전용 모드`;
+                if(syncText) syncText.textContent = "개인 브라우저 로컬 안전 모드";
+            }
+        }
+
+        // 안전하게 Firebase를 시작 (실패해도 앱이 다운되지 않고 오프라인 스토리지로 가동)
+        try {
+            if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+                const firebaseConfig = JSON.parse(__firebase_config);
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+                appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                useCloud = true;
+                updateConnectionState('cloud');
+            } else {
+                updateConnectionState('local');
+            }
+        } catch (err) {
+            console.error("Firebase Initialization fallback activation:", err);
+            updateConnectionState('local');
+        }
+
+        // 공통 전역 상태
         let currentUser = null;
         let activities = [];
         let activeFilters = {
@@ -356,6 +398,7 @@
             const toast = document.getElementById('toast');
             const icon = document.getElementById('toastIcon');
             const msgSpan = document.getElementById('toastMessage');
+            if(!toast) return;
 
             msgSpan.textContent = message;
 
@@ -374,88 +417,98 @@
             }, 2500);
         }
 
-        // 로딩 마스크
+        // 로딩 처리
         function showLoading(text) {
             const mask = document.getElementById('loadingMask');
-            document.getElementById('loadingText').textContent = text;
-            mask.classList.remove('hidden');
+            if(mask) {
+                document.getElementById('loadingText').textContent = text;
+                mask.classList.remove('hidden');
+            }
         }
 
         function hideLoading() {
-            document.getElementById('loadingMask').classList.add('hidden');
+            const mask = document.getElementById('loadingMask');
+            if(mask) mask.classList.add('hidden');
         }
 
-        // 인증 초기수립 (Mandatory Rule 3)
-        const initAuth = async () => {
-            showLoading("보안 연결 초기화 중...");
-            try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
+        // 이메일 파싱용 헬퍼
+        function getIdEmail(id) {
+            return `${id.trim().toLowerCase()}@sengibu-pro.com`;
+        }
+
+        // 초기화 로직
+        const initApp = async () => {
+            showLoading("보안 세션 확인 중...");
+            
+            // 1순위: 자동 로그인 세션 가져오기
+            const localSavedSession = localStorage.getItem('s_logged_user_session');
+
+            if (useCloud) {
+                try {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                } catch (e) {
+                    console.error("Auth rule error:", e);
                 }
-            } catch (error) {
-                console.error("Auth Init Error: ", error);
-                showToast("네트워크 연결 환경을 확인해 주세요.", "error");
-            } finally {
-                hideLoading();
             }
-        };
 
-        // DOM 로드 후 앱 기동 및 이벤트 안전 할당
-        window.addEventListener('DOMContentLoaded', () => {
-            initAuth();
-            setupAutoSaveTriggers();
-            bindEvents();
-        });
-
-        // Auth 수신기
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                if (user.isAnonymous) {
-                    showAuth();
-                } else {
-                    currentUser = user;
-                    showLoading("생기부 클라우드 동기화 중...");
-                    await loadUserProfileAndData(user);
-                    showDashboard();
-                    hideLoading();
-                }
+            if (localSavedSession) {
+                const parsedUser = JSON.parse(localSavedSession);
+                // 세션 유저 연결
+                currentUser = parsedUser;
+                await bindUserRecordData(currentUser.id, currentUser.name);
+                showDashboard();
             } else {
                 showAuth();
             }
+            hideLoading();
+        };
+
+        // DOM 콘텐츠 탑재 이후 즉시 발화
+        window.addEventListener('DOMContentLoaded', () => {
+            initApp();
+            setupAutoSaveTriggers();
         });
 
-        // 프로필 및 기록물 구독 (Rule 1, 2 적용)
-        async function loadUserProfileAndData(user) {
-            const profileRef = doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'info');
-            const profileSnap = await getDoc(profileRef);
-            let profileName = "학생";
-            if (profileSnap.exists()) {
-                profileName = profileSnap.data().name || "학생";
-            }
-            document.getElementById('userName').textContent = profileName;
+        // 유저 고유 데이터 바인딩 핵심부
+        async function bindUserRecordData(uid, userName) {
+            document.getElementById('userName').textContent = userName;
 
-            if (firestoreUnsubscribe) firestoreUnsubscribe();
-
-            const activitiesColRef = collection(db, 'artifacts', appId, 'users', user.uid, 'activities');
-            
-            // 실시간 리스너 및 무한 재귀 예외처리
-            firestoreUnsubscribe = onSnapshot(activitiesColRef, (snapshot) => {
-                activities = [];
-                snapshot.forEach(docSnap => {
-                    activities.push({ id: docSnap.id, ...docSnap.data() });
+            if (useCloud && !uid.startsWith('local_')) {
+                // 파이어베이스 구독 (Rule 1, 2 준수)
+                if (firestoreUnsubscribe) firestoreUnsubscribe();
+                const colRef = collection(db, 'artifacts', appId, 'users', uid, 'activities');
+                
+                firestoreUnsubscribe = onSnapshot(colRef, (snapshot) => {
+                    activities = [];
+                    snapshot.forEach(docSnap => {
+                        activities.push({ id: docSnap.id, ...docSnap.data() });
+                    });
+                    renderActivities();
+                }, (err) => {
+                    console.error("Cloud snapshot fail: ", err);
+                    // 에러 시 로컬 저장소 백업물로 임시 대체 제공
+                    loadLocalData(uid);
                 });
-                renderActivities();
-            }, (error) => {
-                console.error("Firestore Loading error: ", error);
-                showToast("데이터 연동에 실패했습니다.", "error");
-            });
+            } else {
+                // 오프라인 로컬 저장소 모드
+                loadLocalData(uid);
+            }
         }
 
-        // 가공 이메일 수집기
-        function getIdEmail(id) {
-            return `${id.trim().toLowerCase()}@sengibu-pro.com`;
+        function loadLocalData(uid) {
+            const allLocal = JSON.parse(localStorage.getItem('s_local_activities_db') || '{}');
+            activities = allLocal[uid] || [];
+            renderActivities();
+        }
+
+        function saveLocalData(uid) {
+            const allLocal = JSON.parse(localStorage.getItem('s_local_activities_db') || '{}');
+            allLocal[uid] = activities;
+            localStorage.setItem('s_local_activities_db', JSON.stringify(allLocal));
         }
 
         // 화면 전환 처리
@@ -471,8 +524,12 @@
             document.getElementById('mainContainer').classList.add('flex');
         }
 
-        // 로그인 폼과 회원가입 폼 간 전환
-        function toggleAuthMode(isLogin) {
+        // ==========================================
+        // 🌟 전역 노출 함수 바인딩 영역 (ES Module 격리 해제)
+        // ==========================================
+
+        // 1. 회원가입/로그인 양식 토글
+        window.toggleAuthMode = function(isLogin) {
             const loginForm = document.getElementById('loginForm');
             const registerForm = document.getElementById('registerForm');
             if (isLogin) {
@@ -482,195 +539,180 @@
                 loginForm.classList.add('hidden');
                 registerForm.classList.remove('hidden');
             }
-        }
+        };
 
-        // 이벤트 리스너 통합 연결 (안전 보장 옵셔널 체이닝형)
-        function bindEvents() {
-            // 회원가입 페이지 가기 버튼
-            document.getElementById('toRegisterBtn')?.addEventListener('click', () => toggleAuthMode(false));
-            // 로그인 페이지 가기 버튼
-            document.getElementById('toLoginBtn')?.addEventListener('click', () => toggleAuthMode(true));
+        // 2. 가입하기 처리
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('regName').value.trim();
+            const id = document.getElementById('regId').value.trim().toLowerCase();
+            const pw = document.getElementById('regPw').value.trim();
 
-            // 게스트 진입 버튼
-            document.getElementById('guestBtn')?.addEventListener('click', async () => {
-                showLoading("게스트 계정 공간을 만드는 중...");
-                try {
-                    await signInAnonymously(auth);
-                    currentUser = auth.currentUser;
-                    document.getElementById('userName').textContent = "게스트";
-                    activities = [];
-                    renderActivities();
-                    showDashboard();
-                    showToast('게스트 모드로 임시 사용을 지원합니다.', 'info');
-                } catch (err) {
-                    showToast('임시 접속 오류가 발생했습니다.', 'error');
-                } finally {
-                    hideLoading();
-                }
-            });
+            if (!name || !id || !pw) {
+                showToast('필수 정보를 전부 입력해 주세요.', 'error');
+                return;
+            }
 
-            // 회원가입 처리
-            document.getElementById('registerForm')?.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const name = document.getElementById('regName').value.trim();
-                const id = document.getElementById('regId').value.trim();
-                const pw = document.getElementById('regPw').value.trim();
+            if (pw.length < 6) {
+                showToast('비밀번호는 안전을 위해 최소 6글자 이상이어야 합니다.', 'error');
+                return;
+            }
 
-                if (pw.length < 6) {
-                    showToast('비밀번호는 안전을 위해 최소 6자리 이상이어야 합니다.', 'error');
-                    return;
-                }
+            showLoading("계정을 생성하는 중...");
 
-                showLoading("새 클라우드 계정을 준비 중...");
+            if (useCloud) {
                 try {
                     const email = getIdEmail(id);
+                    // 클라우드 회원가입
                     const userCredential = await createUserWithEmailAndPassword(auth, email, pw);
                     const user = userCredential.user;
 
-                    // 유저 프로필 생성 (Rule 1)
+                    // 프로필 설정
                     const profileRef = doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'info');
-                    await setDoc(profileRef, { name: name, createdAt: new Date().toISOString() });
+                    await setDoc(profileRef, { name, createdAt: new Date().toISOString() });
 
-                    showToast('가입 성공! 만들어진 아이디로 로그인을 진행해주세요.', 'success');
+                    showToast('성공적으로 클라우드에 가입되었습니다! 로그인해 주세요.', 'success');
                     document.getElementById('registerForm').reset();
-                    toggleAuthMode(true);
+                    window.toggleAuthMode(true);
                 } catch (error) {
                     if (error.code === 'auth/email-already-in-use') {
-                        showToast('이미 존재하는 아이디입니다.', 'error');
+                        showToast('이미 등록된 아이디입니다. 다른 아이디를 써보세요.', 'error');
                     } else {
-                        showToast('회원가입 중 오류가 생겼습니다.', 'error');
+                        // 클라우드 가입 차단 혹은 실패 시 로컬 가입 전향 허용
+                        localRegisterProcess(id, name, pw);
                     }
                 } finally {
                     hideLoading();
                 }
-            });
+            } else {
+                // 로컬 가입 처리
+                localRegisterProcess(id, name, pw);
+                hideLoading();
+            }
+        });
 
-            // 로그인 처리
-            document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const id = document.getElementById('loginId').value.trim();
-                const pw = document.getElementById('loginPw').value.trim();
+        function localRegisterProcess(id, name, pw) {
+            const localUsers = JSON.parse(localStorage.getItem('s_local_users_db') || '{}');
+            if (localUsers[id]) {
+                showToast('이미 사용 중인 아이디입니다.', 'error');
+                return;
+            }
+            localUsers[id] = { name, pw };
+            localStorage.setItem('s_local_users_db', JSON.stringify(localUsers));
+            showToast('가입 완료! 생성된 아이디로 로그인해보세요.', 'success');
+            document.getElementById('registerForm').reset();
+            window.toggleAuthMode(true);
+        }
 
-                showLoading("로그인 정보를 검증 중...");
+        // 3. 로그인 처리
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('loginId').value.trim().toLowerCase();
+            const pw = document.getElementById('loginPw').value.trim();
+
+            showLoading("접속을 시도하는 중...");
+
+            if (useCloud) {
                 try {
                     const email = getIdEmail(id);
-                    await signInWithEmailAndPassword(auth, email, pw);
-                    showToast('로그인 및 원고 실시간 동기화 완료!', 'success');
+                    const userCredential = await signInWithEmailAndPassword(auth, email, pw);
+                    const user = userCredential.user;
+
+                    currentUser = { id: user.uid, name: '인증 사용자' };
+                    
+                    // 프로필 조회 및 로컬 영구 세션 확보
+                    const profileRef = doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'info');
+                    const profileSnap = await getDoc(profileRef);
+                    if (profileSnap.exists()) {
+                        currentUser.name = profileSnap.data().name || '학생';
+                    }
+
+                    localStorage.setItem('s_logged_user_session', JSON.stringify(currentUser));
+                    await bindUserRecordData(currentUser.id, currentUser.name);
+                    showDashboard();
+                    showToast(`${currentUser.name}님, 정상 복구되어 동기화되었습니다!`, 'success');
                     document.getElementById('loginForm').reset();
                 } catch (error) {
-                    showToast('아이디 또는 패스워드가 다릅니다.', 'error');
+                    // 클라우드 가입 정보 불일치 혹은 인터넷 순단 시 로컬 모드 확인
+                    localLoginProcess(id, pw);
                 } finally {
                     hideLoading();
                 }
-            });
+            } else {
+                localLoginProcess(id, pw);
+                hideLoading();
+            }
+        });
 
-            // 로그아웃 버튼
-            document.getElementById('logoutBtn')?.addEventListener('click', async () => {
-                showLoading("접속을 안전하게 끊는 중...");
-                try {
+        function localLoginProcess(id, pw) {
+            const localUsers = JSON.parse(localStorage.getItem('s_local_users_db') || '{}');
+            const user = localUsers[id];
+
+            if (user && user.pw === pw) {
+                currentUser = { id: 'local_' + id, name: user.name };
+                localStorage.setItem('s_logged_user_session', JSON.stringify(currentUser));
+                bindUserRecordData(currentUser.id, currentUser.name);
+                showDashboard();
+                showToast(`${user.name}님, 로컬 보안 모드로 환영합니다!`, 'success');
+                document.getElementById('loginForm').reset();
+            } else {
+                showToast('등록되지 않은 회원이거나 비밀번호가 틀립니다.', 'error');
+            }
+        }
+
+        // 4. 게스트 모드
+        window.startAsGuest = function() {
+            currentUser = { id: 'local_guest_user', name: '게스트' };
+            localStorage.setItem('s_logged_user_session', JSON.stringify(currentUser));
+            bindUserRecordData(currentUser.id, currentUser.name);
+            showDashboard();
+            showToast('게스트 체험 모드로 접속했습니다. 기록을 바로 작성하세요!', 'info');
+        };
+
+        // 5. 로그아웃
+        window.handleLogout = async function() {
+            showLoading("로그아웃하는 중...");
+            try {
+                localStorage.removeItem('s_logged_user_session');
+                if (useCloud) {
                     if (firestoreUnsubscribe) firestoreUnsubscribe();
                     await signOut(auth);
                     await signInAnonymously(auth);
-                    currentUser = null;
-                    activities = [];
-                    showAuth();
-                    showToast('로그아웃 완료되었습니다.', 'info');
-                } catch (err) {
-                    showToast('로그아웃 도중 오류가 생겼습니다.', 'error');
-                } finally {
-                    hideLoading();
                 }
-            });
-
-            // 새 활동 작성 모달 트리거
-            document.getElementById('openAddModalBtn')?.addEventListener('click', () => {
-                document.getElementById('modalTitle').textContent = '새 생기부 활동 기록';
-                document.getElementById('activityForm').reset();
-                document.getElementById('editId').value = '';
-
-                const today = new Date().toISOString().substring(0, 10);
-                document.getElementById('formDate').value = today;
-
-                updateCharCount('formDescription', 'descLen');
-                updateCharCount('formReflection', 'reflLen');
-
-                document.getElementById('activityModal').classList.remove('hidden');
-
-                checkDraftData();
-            });
-
-            // 모달 닫기 제어들
-            document.getElementById('closeModalBtn')?.addEventListener('click', closeModal);
-            document.getElementById('cancelModalBtn')?.addEventListener('click', closeModal);
-
-            // 활동 영구등록/수정 제출문
-            document.getElementById('activityForm')?.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                
-                if (!auth.currentUser) {
-                    showToast('인증 상태가 만료되었습니다. 다시 로그인 해 주세요.', 'error');
-                    return;
-                }
-
-                const editId = document.getElementById('editId').value;
-                const grade = document.getElementById('formGrade').value;
-                const semester = document.getElementById('formSemester').value;
-                const category = document.getElementById('formCategory').value;
-                const date = document.getElementById('formDate').value;
-                const subject = document.getElementById('formSubject').value.trim();
-                const title = document.getElementById('formTitle').value.trim();
-                const description = document.getElementById('formDescription').value.trim();
-                const reflection = document.getElementById('formReflection').value.trim();
-
-                if (!grade || !semester || !category || !date || !title || !description || !reflection) {
-                    showToast('필수 구성 요소를 전부 적어주세요.', 'error');
-                    return;
-                }
-
-                const docId = editId ? editId : 'act_' + Date.now();
-                showLoading("클라우드 영구 동기화 중...");
-
-                try {
-                    // Rule 1: 안전 경로 준수
-                    const docRef = doc(db, 'artifacts', appId, 'users', auth.currentUser.uid, 'activities', docId);
-                    await setDoc(docRef, {
-                        grade, semester, category, date, subject, title, description, reflection,
-                        updatedAt: new Date().toISOString()
-                    });
-
-                    // 임시 보호 캐시 흔적 삭제
-                    localStorage.removeItem(`s_cloud_draft_${auth.currentUser.uid}`);
-                    
-                    showToast('소중한 원고가 안전하게 동기화되었습니다.', 'success');
-                    closeModal();
-                } catch (err) {
-                    showToast('저장 중 장애가 생겼습니다. 오프라인 복구 기능을 신뢰하세요.', 'error');
-                } finally {
-                    hideLoading();
-                }
-            });
-
-            // 수동 백업 내보내기/가져오기 버튼 바인딩
-            document.getElementById('exportBtn')?.addEventListener('click', exportData);
-            document.getElementById('importFile')?.addEventListener('change', importData);
-
-            // 카테고리 필터 검색 및 인풋 바인딩
-            document.getElementById('categoryFilter')?.addEventListener('change', renderActivities);
-            document.getElementById('searchKeyword')?.addEventListener('input', renderActivities);
-        }
-
-        function closeModal() {
-            document.getElementById('activityModal').classList.add('hidden');
-            if (autoSaveTimer) {
-                clearTimeout(autoSaveTimer);
-                autoSaveTimer = null;
+                currentUser = null;
+                activities = [];
+                showAuth();
+                showToast('성공적으로 연결이 해제되었습니다.', 'info');
+            } catch (err) {
+                console.error(err);
+            } finally {
+                hideLoading();
             }
-            document.getElementById('autoSaveIndicator').innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> 작성 내용이 장치에 실시간 임시 보관됩니다`;
-            document.getElementById('autoSaveIndicator').className = "text-[11px] text-slate-400 mt-0.5 flex items-center gap-1";
-        }
+        };
 
-        // 5. 렌더링 엔진 (Rule 2 준수: 클라이언트 필터 가공 처리)
-        function renderActivities() {
+        // 6. 학년/학기 필터 처리
+        window.setFilter = function(type, value) {
+            activeFilters[type] = value;
+            const buttons = document.querySelectorAll(`.filter-btn-${type}`);
+            buttons.forEach(btn => {
+                const btnVal = btn.getAttribute('data-val');
+                if (btnVal === value) {
+                    btn.className = `filter-btn-${type} active px-3 py-2 text-sm font-medium rounded-lg text-center transition bg-blue-50 text-blue-600 border border-blue-100`;
+                    if (type === 'semester') {
+                        btn.className = `filter-btn-semester active px-2 py-2 text-xs font-medium rounded-lg text-center transition bg-blue-50 text-blue-600 border border-blue-100`;
+                    }
+                } else {
+                    btn.className = `filter-btn-${type} px-3 py-2 text-sm font-medium rounded-lg text-center transition bg-slate-50 text-slate-600 border border-transparent hover:bg-slate-100`;
+                    if (type === 'semester') {
+                        btn.className = `filter-btn-semester px-2 py-2 text-xs font-medium rounded-lg text-center transition bg-slate-50 text-slate-600 border border-transparent hover:bg-slate-100`;
+                    }
+                }
+            });
+            window.renderActivities();
+        };
+
+        // 7. 실시간 리스트 렌더링
+        window.renderActivities = function() {
             const container = document.getElementById('activityContainer');
             if (!container) return;
 
@@ -690,7 +732,7 @@
                 return matchGrade && matchSemester && matchCategory && matchSearch;
             }).sort((a, b) => new Date(b.date) - new Date(a.date));
 
-            document.getElementById('activityCount').textContent = `동기화된 활동: ${filtered.length}개`;
+            document.getElementById('activityCount').textContent = `검색 결과: ${filtered.length}개`;
 
             if (filtered.length === 0) {
                 container.innerHTML = `
@@ -698,8 +740,8 @@
                         <div class="text-slate-300 text-5xl mb-4">
                             <i class="fa-regular fa-folder-open"></i>
                         </div>
-                        <h4 class="text-base font-semibold text-slate-700">기록된 활동이 없습니다</h4>
-                        <p class="text-xs text-slate-400 mt-1">학년/학기 필터를 조정하거나 새 활동을 등록해 보세요.</p>
+                        <h4 class="text-base font-semibold text-slate-700">작성된 내용이 존재하지 않습니다</h4>
+                        <p class="text-xs text-slate-400 mt-1">학년/학기 필터를 조정하거나 우측 상단에서 생기부를 기록해 보세요.</p>
                     </div>
                 `;
                 return;
@@ -722,10 +764,10 @@
                             <div class="flex items-center gap-3">
                                 <span class="text-xs text-slate-400"><i class="fa-regular fa-calendar mr-1"></i>${act.date}</span>
                                 <div class="flex items-center gap-1.5 border-l pl-3 border-slate-200">
-                                    <button onclick="editActivity('${act.id}')" class="text-xs text-slate-500 hover:text-blue-600 p-1" title="수정">
+                                    <button onclick="window.editActivity('${act.id}')" class="text-xs text-slate-500 hover:text-blue-600 p-1" title="수정">
                                         <i class="fa-regular fa-pen-to-square"></i>
                                     </button>
-                                    <button onclick="deleteActivity('${act.id}')" class="text-xs text-slate-500 hover:text-rose-600 p-1" title="삭제">
+                                    <button onclick="window.deleteActivity('${act.id}')" class="text-xs text-slate-500 hover:text-rose-600 p-1" title="삭제">
                                         <i class="fa-regular fa-trash-can"></i>
                                     </button>
                                 </div>
@@ -746,7 +788,7 @@
 
                             <div class="bg-blue-50/30 p-3.5 rounded-xl border border-blue-50/50">
                                 <h4 class="text-xs font-bold text-blue-500 uppercase tracking-wider mb-1.5 flex items-center gap-1">
-                                    <i class="fa-regular fa-lightbulb text-yellow-500"></i> 소감문 및 느낀 점
+                                    <i class="fa-regular fa-lightbulb text-yellow-500"></i> 소감문 및 배운 점
                                 </h4>
                                 <p class="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">${escapeHtml(act.reflection)}</p>
                             </div>
@@ -754,45 +796,7 @@
                     </article>
                 `;
             }).join('');
-        }
-
-        window.editActivity = function(id) {
-            const act = activities.find(a => a.id === id);
-            if (!act) return;
-
-            document.getElementById('modalTitle').textContent = '기록 수정 (클라우드 업데이트)';
-            document.getElementById('editId').value = act.id;
-            document.getElementById('formGrade').value = act.grade;
-            document.getElementById('formSemester').value = act.semester;
-            document.getElementById('formCategory').value = act.category;
-            document.getElementById('formDate').value = act.date;
-            document.getElementById('formSubject').value = act.subject || '';
-            document.getElementById('formTitle').value = act.title;
-            document.getElementById('formDescription').value = act.description;
-            document.getElementById('formReflection').value = act.reflection;
-
-            updateCharCount('formDescription', 'descLen');
-            updateCharCount('formReflection', 'reflLen');
-
-            document.getElementById('activityModal').classList.remove('hidden');
-        }
-
-        window.deleteActivity = async function(id) {
-            if (!auth.currentUser) return;
-            const confirmDel = confirm('이 생기부 활동 원고를 영구 삭제하시겠습니까?');
-            if (confirmDel) {
-                showLoading("삭제 동기화 중...");
-                try {
-                    const docRef = doc(db, 'artifacts', appId, 'users', auth.currentUser.uid, 'activities', id);
-                    await deleteDoc(docRef);
-                    showToast('성공적으로 삭제되었습니다.', 'info');
-                } catch (err) {
-                    showToast('삭제 처리에 실패했습니다.', 'error');
-                } finally {
-                    hideLoading();
-                }
-            }
-        }
+        };
 
         function getCategoryStyle(cat) {
             const styles = {
@@ -817,28 +821,138 @@
                 .replace(/'/g, "&#039;");
         }
 
-        // 학년/학기 필터 세팅
-        window.setFilter = function(type, value) {
-            activeFilters[type] = value;
-            const buttons = document.querySelectorAll(`.filter-btn-${type}`);
-            buttons.forEach(btn => {
-                const btnVal = btn.getAttribute('data-val');
-                if (btnVal === value) {
-                    btn.className = `filter-btn-${type} active px-3 py-2 text-sm font-medium rounded-lg text-center transition bg-blue-50 text-blue-600 border border-blue-100`;
-                    if (type === 'semester') {
-                        btn.className = `filter-btn-semester active px-2 py-2 text-xs font-medium rounded-lg text-center transition bg-blue-50 text-blue-600 border border-blue-100`;
-                    }
-                } else {
-                    btn.className = `filter-btn-${type} px-3 py-2 text-sm font-medium rounded-lg text-center transition bg-slate-50 text-slate-600 border border-transparent hover:bg-slate-100`;
-                    if (type === 'semester') {
-                        btn.className = `filter-btn-semester px-2 py-2 text-xs font-medium rounded-lg text-center transition bg-slate-50 text-slate-600 border border-transparent hover:bg-slate-100`;
-                    }
-                }
-            });
-            renderActivities();
-        }
+        // 8. 모달 제어
+        window.openAddModal = function() {
+            document.getElementById('modalTitle').textContent = '새 생기부 활동 기록 추가';
+            document.getElementById('activityForm').reset();
+            document.getElementById('editId').value = '';
 
-        // 6. 글자수 카운팅 및 자동저장 장치
+            const today = new Date().toISOString().substring(0, 10);
+            document.getElementById('formDate').value = today;
+
+            updateCharCount('formDescription', 'descLen');
+            updateCharCount('formReflection', 'reflLen');
+
+            document.getElementById('activityModal').classList.remove('hidden');
+
+            checkDraftData();
+        };
+
+        window.closeModal = function() {
+            document.getElementById('activityModal').classList.add('hidden');
+            if (autoSaveTimer) {
+                clearTimeout(autoSaveTimer);
+                autoSaveTimer = null;
+            }
+            document.getElementById('autoSaveIndicator').innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> 작성 시작 시 기기에 안전 버퍼가 생성됩니다`;
+            document.getElementById('autoSaveIndicator').className = "text-[11px] text-slate-400 mt-0.5 flex items-center gap-1";
+        };
+
+        // 9. 저장 처리 (수정 및 생성)
+        window.saveActivity = async function(e) {
+            e.preventDefault();
+            
+            if (!currentUser) return;
+
+            const editId = document.getElementById('editId').value;
+            const grade = document.getElementById('formGrade').value;
+            const semester = document.getElementById('formSemester').value;
+            const category = document.getElementById('formCategory').value;
+            const date = document.getElementById('formDate').value;
+            const subject = document.getElementById('formSubject').value.trim();
+            const title = document.getElementById('formTitle').value.trim();
+            const description = document.getElementById('formDescription').value.trim();
+            const reflection = document.getElementById('formReflection').value.trim();
+
+            if (!grade || !semester || !category || !date || !title || !description || !reflection) {
+                showToast('필수 입력 항목을 채워주세요.', 'error');
+                return;
+            }
+
+            const docId = editId ? editId : 'act_' + Date.now();
+            const dataPayload = {
+                grade, semester, category, date, subject, title, description, reflection,
+                updatedAt: new Date().toISOString()
+            };
+
+            showLoading("원고를 안전하게 연동하는 중...");
+
+            try {
+                if (useCloud && !currentUser.id.startsWith('local_')) {
+                    // 클라우드 저장 (Rule 1)
+                    const docRef = doc(db, 'artifacts', appId, 'users', currentUser.id, 'activities', docId);
+                    await setDoc(docRef, dataPayload);
+                } else {
+                    // 로컬 모드 저장
+                    const idx = activities.findIndex(a => a.id === docId);
+                    if (idx !== -1) {
+                        activities[idx] = { id: docId, ...dataPayload };
+                    } else {
+                        activities.push({ id: docId, ...dataPayload });
+                    }
+                    saveLocalData(currentUser.id);
+                    window.renderActivities();
+                }
+
+                // 기기 임시 세이브 파일 삭제
+                localStorage.removeItem(`s_local_draft_${currentUser.id}`);
+                showToast('성공적으로 저장되었습니다.', 'success');
+                window.closeModal();
+            } catch (err) {
+                console.error("Save error: ", err);
+                showToast('저장 중 일시적인 실패가 발생했습니다.', 'error');
+            } finally {
+                hideLoading();
+            }
+        };
+
+        // 10. 수정 이벤트 트리거
+        window.editActivity = function(id) {
+            const act = activities.find(a => a.id === id);
+            if (!act) return;
+
+            document.getElementById('modalTitle').textContent = '생기부 기록 수정';
+            document.getElementById('editId').value = act.id;
+            document.getElementById('formGrade').value = act.grade;
+            document.getElementById('formSemester').value = act.semester;
+            document.getElementById('formCategory').value = act.category;
+            document.getElementById('formDate').value = act.date;
+            document.getElementById('formSubject').value = act.subject || '';
+            document.getElementById('formTitle').value = act.title;
+            document.getElementById('formDescription').value = act.description;
+            document.getElementById('formReflection').value = act.reflection;
+
+            updateCharCount('formDescription', 'descLen');
+            updateCharCount('formReflection', 'reflLen');
+
+            document.getElementById('activityModal').classList.remove('hidden');
+        };
+
+        // 11. 삭제 이벤트 트리거
+        window.deleteActivity = async function(id) {
+            if (!currentUser) return;
+            const check = confirm("이 생기부 기록 원고를 지우시겠습니까?\n삭제된 문서는 백업 파일이 없을 시 복구가 불가능합니다.");
+            if (check) {
+                showLoading("삭제 동기화 중...");
+                try {
+                    if (useCloud && !currentUser.id.startsWith('local_')) {
+                        const docRef = doc(db, 'artifacts', appId, 'users', currentUser.id, 'activities', id);
+                        await deleteDoc(docRef);
+                    } else {
+                        activities = activities.filter(a => a.id !== id);
+                        saveLocalData(currentUser.id);
+                        window.renderActivities();
+                    }
+                    showToast('해당 기록 원고가 안전하게 삭제되었습니다.', 'info');
+                } catch (err) {
+                    showToast('삭제 프로세스 처리 도중 장애가 일어났습니다.', 'error');
+                } finally {
+                    hideLoading();
+                }
+            }
+        };
+
+        // 12. 글자수 인디케이터
         function updateCharCount(areaId, targetLenId) {
             const area = document.getElementById(areaId);
             const target = document.getElementById(targetLenId);
@@ -847,6 +961,7 @@
             target.textContent = `${currentLen}자 / 1000자`;
         }
 
+        // 13. 자동 안전 임시저장(Auto-save) 장치 가동
         function setupAutoSaveTriggers() {
             const formElements = ['formGrade', 'formSemester', 'formCategory', 'formDate', 'formSubject', 'formTitle', 'formDescription', 'formReflection'];
             formElements.forEach(elemId => {
@@ -871,11 +986,11 @@
         }
 
         function triggerAutoSave() {
-            if (!auth.currentUser) return;
+            if (!currentUser) return;
 
             const indicator = document.getElementById('autoSaveIndicator');
             indicator.className = "text-[11px] text-amber-500 mt-0.5 flex items-center gap-1";
-            indicator.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> 로컬 변경 임시 동기화 중...`;
+            indicator.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> 입력 데이터 임시 보호 중...`;
 
             if (autoSaveTimer) clearTimeout(autoSaveTimer);
             autoSaveTimer = setTimeout(() => {
@@ -884,7 +999,7 @@
         }
 
         function saveDraftData() {
-            if (!auth.currentUser) return;
+            if (!currentUser) return;
 
             const editId = document.getElementById('editId').value;
             if (editId) {
@@ -909,24 +1024,24 @@
             if (!draft.title && !draft.description && !draft.reflection) {
                 const indicator = document.getElementById('autoSaveIndicator');
                 indicator.className = "text-[11px] text-slate-400 mt-0.5 flex items-center gap-1";
-                indicator.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> 작성 내용이 장치에 실시간 임시 보관됩니다`;
+                indicator.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> 작성 시작 시 기기에 안전 버퍼가 생성됩니다`;
                 return;
             }
 
-            localStorage.setItem(`s_cloud_draft_${auth.currentUser.uid}`, JSON.stringify(draft));
+            localStorage.setItem(`s_local_draft_${currentUser.id}`, JSON.stringify(draft));
             const indicator = document.getElementById('autoSaveIndicator');
             indicator.className = "text-[11px] text-emerald-600 mt-0.5 flex items-center gap-1 font-medium";
-            indicator.innerHTML = `<i class="fa-solid fa-circle-check"></i> 로컬 임시 안전 저장 완료`;
+            indicator.innerHTML = `<i class="fa-solid fa-circle-check"></i> 브라우저 임시 자동 보호 작동 완료`;
         }
 
         function checkDraftData() {
-            if (!auth.currentUser) return;
-            const savedDraftStr = localStorage.getItem(`s_cloud_draft_${auth.currentUser.uid}`);
+            if (!currentUser) return;
+            const savedDraftStr = localStorage.getItem(`s_local_draft_${currentUser.id}`);
             if (savedDraftStr) {
                 const draft = JSON.parse(savedDraftStr);
                 if (draft.title || draft.description || draft.reflection) {
                     setTimeout(() => {
-                        const restoreConfirm = confirm(`[임시 보관 데이터 발견]\n이전에 완성하지 못하고 꺼진 작성 내용이 존재합니다.\n\n해당 원고를 복원하여 이어 쓰시겠습니까?`);
+                        const restoreConfirm = confirm(`[임시 원고 감지]\n작성 중이던 미완성 문서 원고가 브라우저에 임시 세이브되어 있습니다.\n\n해당 내용을 가져오시겠습니까?`);
                         if (restoreConfirm) {
                             document.getElementById('formGrade').value = draft.grade || '1';
                             document.getElementById('formSemester').value = draft.semester || '1';
@@ -939,78 +1054,89 @@
                             
                             updateCharCount('formDescription', 'descLen');
                             updateCharCount('formReflection', 'reflLen');
-                            showToast('이전 작성 원고를 복구했습니다.', 'success');
+                            showToast('임시 보호되어 있던 원고를 가져왔습니다.', 'success');
                         } else {
-                            localStorage.removeItem(`s_cloud_draft_${auth.currentUser.uid}`);
+                            localStorage.removeItem(`s_local_draft_${currentUser.id}`);
                         }
                     }, 100);
                 }
             }
         }
 
-        // JSON 파일 입출력 백업
-        function exportData() {
+        // 14. 파일 내보내기/불러오기 수동 시스템
+        window.exportData = function() {
             if (activities.length === 0) {
-                showToast('내보낼 데이터가 존재하지 않습니다.', 'error');
+                showToast('내보낼 기록 데이터가 존재하지 않습니다.', 'error');
                 return;
             }
             const payload = {
-                ownerId: auth.currentUser?.uid || 'anonymous',
+                ownerId: currentUser?.id || 'guest',
                 exportedAt: new Date().toISOString(),
                 data: activities
             };
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(payload, null, 2));
             const downloadAnchor = document.createElement('a');
             downloadAnchor.setAttribute("href", dataStr);
-            downloadAnchor.setAttribute("download", `생기부Pro_안전백업_${new Date().toISOString().slice(0,10)}.json`);
+            downloadAnchor.setAttribute("download", `생기부_백업파일_${new Date().toISOString().slice(0,10)}.json`);
             document.body.appendChild(downloadAnchor);
             downloadAnchor.click();
             downloadAnchor.remove();
-            showToast('JSON 백업 파일이 생성되어 안전하게 다운로드되었습니다.', 'success');
-        }
+            showToast('백업 파일이 기기에 다운로드되었습니다.', 'success');
+        };
 
-        async function importData(event) {
+        window.importData = function(event) {
             const file = event.target.files[0];
-            if (!file || !auth.currentUser) return;
+            if (!file || !currentUser) return;
 
             const reader = new FileReader();
             reader.onload = async function(e) {
                 try {
                     const parsed = JSON.parse(e.target.result);
                     if (parsed && Array.isArray(parsed.data)) {
-                        const confirmImport = confirm(`가져올 수 있는 기록 ${parsed.data.length}개를 감지했습니다.\n\n이 백업 데이터를 현재 클라우드 공간에 병합하여 덮어쓸까요?`);
+                        const confirmImport = confirm(`백업 파일 안의 기록 ${parsed.data.length}개를 가져옵니다.\n\n현재 저장 공간에 추가 병합하시겠습니까?`);
                         
                         if (confirmImport) {
-                            showLoading("클라우드로 이식 병합 중...");
-                            for (const item of parsed.data) {
-                                const docId = item.id || 'act_' + Date.now() + Math.random().toString(36).substr(2, 5);
-                                const docRef = doc(db, 'artifacts', appId, 'users', auth.currentUser.uid, 'activities', docId);
-                                await setDoc(docRef, {
-                                    grade: item.grade || '1',
-                                    semester: item.semester || '1',
-                                    category: item.category || '기타',
-                                    date: item.date || new Date().toISOString().substring(0,10),
-                                    subject: item.subject || '',
-                                    title: item.title || '',
-                                    description: item.description || '',
-                                    reflection: item.reflection || '',
-                                    updatedAt: new Date().toISOString()
+                            showLoading("데이터 병합 진행 중...");
+                            if (useCloud && !currentUser.id.startsWith('local_')) {
+                                for (const item of parsed.data) {
+                                    const docId = item.id || 'act_' + Date.now() + Math.random().toString(36).substr(2, 5);
+                                    const docRef = doc(db, 'artifacts', appId, 'users', currentUser.id, 'activities', docId);
+                                    await setDoc(docRef, {
+                                        grade: item.grade || '1',
+                                        semester: item.semester || '1',
+                                        category: item.category || '기타',
+                                        date: item.date || new Date().toISOString().substring(0,10),
+                                        subject: item.subject || '',
+                                        title: item.title || '',
+                                        description: item.description || '',
+                                        reflection: item.reflection || '',
+                                        updatedAt: new Date().toISOString()
+                                    });
+                                }
+                            } else {
+                                const currentIds = new Set(activities.map(a => a.id));
+                                parsed.data.forEach(item => {
+                                    if (!currentIds.has(item.id)) {
+                                        activities.push(item);
+                                    }
                                 });
+                                saveLocalData(currentUser.id);
+                                window.renderActivities();
                             }
-                            showToast('가져오기가 무사히 완료되어 클라우드에 영구 소장되었습니다!', 'success');
+                            showToast('모든 백업 데이터가 성공적으로 복구되었습니다!', 'success');
                         }
                     } else {
                         showToast('비정상적이거나 파손된 형식의 파일입니다.', 'error');
                     }
                 } catch (err) {
-                    showToast('백업 파일을 처리하는 도중 오류가 발생했습니다.', 'error');
+                    showToast('백업 파일 로딩에 실패했습니다.', 'error');
                 } finally {
                     hideLoading();
                 }
             };
             reader.readAsText(file);
             event.target.value = '';
-        }
+        };
     </script>
 </body>
 </html>
